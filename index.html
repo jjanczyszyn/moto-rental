@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JJ Moto Rentals</title>
+  <!-- Fonts & Basic Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #ff4d4f;
+      --bg: #f9fafb;
+      --text: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    nav a {
+      margin-left: 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .hero {
+      text-align: center;
+      padding: 4rem 1rem;
+    }
+    .hero h2 {
+      font-size: 2.25rem;
+      margin: 0 0 1rem;
+    }
+    .hero p {
+      font-size: 1.125rem;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    .cta {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: 0.375rem;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    section#fleet {
+      padding: 2rem 1rem 4rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .card-body {
+      padding: 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-body h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+    }
+    .card-body p {
+      flex: 1;
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+    }
+    .price {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .cal-btn {
+      text-align: center;
+      padding: 0.75rem 1rem;
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: 0.375rem;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    /* Ensure Cal.com pop‑ups appear above everything */
+    .calcom-embed-popup { z-index: 9999; }
+  </style>
+  <!-- Cal.com Embed Script -->
+  <script src="https://cal.com/embed.js" async></script>
+</head>
+<body>
+  <!-- Site Header -->
+  <header>
+    <h1>JJ Moto Rentals</h1>
+    <nav>
+      <a href="#fleet">Our Fleet</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h2>Ride the Coast in Style</h2>
+    <p>Select your dream bike, pick a time, and hit the road — booking takes less than a minute.</p>
+    <a href="#fleet" class="cta">Browse Motorcycles</a>
+  </section>
+
+  <!-- Fleet Section -->
+  <section id="fleet">
+    <h2 style="text-align:center;margin-bottom:2rem;">Available Motorcycles</h2>
+    <div class="fleet-grid">
+      <!-- Motorcycle #1 -->
+      <div class="card">
+        <img src="https://source.unsplash.com/featured/400x300?motorcycle" alt="Genesis Klik Rosa" />
+        <div class="card-body">
+          <h3>Genesis Klik Rosa</h3>
+          <p>Agile 125cc cruiser — perfect for city hops and quick beach runs.</p>
+          <div class="price">$35 / day</div>
+          <a href="https://cal.com/YOUR_NAMESPACE/genesis-klik-rosa" class="cal-btn" data-cal-namespace="YOUR_NAMESPACE" data-cal-link="genesis-klik-rosa">Book Now</a>
+        </div>
+      </div>
+
+      <!-- Motorcycle #2 -->
+      <div class="card">
+        <img src="https://source.unsplash.com/featured/400x300?motorbike" alt="Honda XR150L" />
+        <div class="card-body">
+          <h3>Honda XR150L</h3>
+          <p>Dual‑sport versatility with off‑road suspension for jungle detours.</p>
+          <div class="price">$40 / day</div>
+          <a href="https://cal.com/YOUR_NAMESPACE/honda-xr150l" class="cal-btn" data-cal-namespace="YOUR_NAMESPACE" data-cal-link="honda-xr150l">Book Now</a>
+        </div>
+      </div>
+
+      <!-- Motorcycle #3 -->
+      <div class="card">
+        <img src="https://source.unsplash.com/featured/400x300?cafe-racer" alt="Royal Enfield Classic 350" />
+        <div class="card-body">
+          <h3>Royal Enfield Classic 350</h3>
+          <p>Retro charm meets modern reliability — ideal for scenic coastal cruises.</p>
+          <div class="price">$55 / day</div>
+          <a href="https://cal.com/YOUR_NAMESPACE/royal-enfield-350" class="cal-btn" data-cal-namespace="YOUR_NAMESPACE" data-cal-link="royal-enfield-350">Book Now</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" style="background:#ffffff;padding:3rem 1rem;">
+    <h2 style="text-align:center;margin-bottom:1rem;">Questions?</h2>
+    <p style="text-align:center;max-width:600px;margin:0 auto 2rem;">Reach us on WhatsApp at +505‑XXX‑XXXX or email <a href="mailto:rides@jjmoto.com">rides@jjmoto.com</a>.</p>
+    <p style="text-align:center;font-size:0.9rem;">All rentals require a valid driver’s license and security deposit.</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    © 2025 JJ Moto Rentals. All rights reserved.
+  </footer>
+</body>
+</html>
