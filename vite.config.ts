@@ -9,6 +9,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         admin: resolve(__dirname, 'admin.html'),
         authCallback: resolve(__dirname, 'auth-callback.html'),
+        customer: resolve(__dirname, 'customer.html'),
       },
     },
   },
