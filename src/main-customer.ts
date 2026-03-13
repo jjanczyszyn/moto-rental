@@ -1,5 +1,6 @@
 import { supabase } from './lib/supabase';
 import { MANAGER_WHATSAPP_LINK, REVIEW_LINK } from './lib/business-config';
+import { sanitizeRpcParams } from './lib/rpc-params';
 
 const main = document.getElementById('customer-main');
 if (!main) throw new Error('Missing #customer-main element');
@@ -191,10 +192,10 @@ function showError(msg: string): void {
 }
 
 async function lookupBooking(code: string, secret: string): Promise<void> {
-  const { data, error } = await (supabase as any).rpc('lookup_booking', {
+  const { data, error } = await (supabase as any).rpc('lookup_booking', sanitizeRpcParams({
     p_reservation_code: code.toUpperCase().trim(),
     p_access_secret: secret.trim(),
-  }) as { data: BookingData | null; error: { message: string } | null };
+  })) as { data: BookingData | null; error: { message: string } | null };
 
   if (error || !data) {
     showError('Invalid reservation code or access secret.');

@@ -3,6 +3,7 @@ import type { Database } from './lib/database.types';
 import { formatDate, parseDate, isValidDateRange, calculateNights } from './lib/utils';
 import { BUSINESS_NAME, UNIVERSAL_INCLUSIONS, MANAGER_WHATSAPP_LINK, MAP_LINK, PAYMENT_METHODS, MANAGER_NAME, PRICING } from './lib/business-config';
 import { calculatePricing } from './lib/pricing';
+import { sanitizeRpcParams } from './lib/rpc-params';
 
 type Motorcycle = Database['public']['Tables']['motorcycles']['Row'];
 // The RPC has overloaded signatures in generated types; extract the new one explicitly.
@@ -1212,7 +1213,7 @@ function wireWizardStep5(): void {
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc('create_booking_request', rpcArgs) as { data: BookingRpcResult | null; error: { message: string } | null };
+    const { data, error } = await (supabase as any).rpc('create_booking_request', sanitizeRpcParams(rpcArgs)) as { data: BookingRpcResult | null; error: { message: string } | null };
 
     if (error) {
       continueBtn.disabled = false;
@@ -1626,7 +1627,7 @@ async function handleSubmit(e: Event): Promise<void> {
   // Type assertion: placeholder database.types.ts doesn't fully satisfy
   // supabase-js v2.99 rpc generics. Real generated types (post-bootstrap) will.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc('create_booking_request', rpcArgs) as { data: BookingRpcResult | null; error: { message: string } | null };
+  const { data, error } = await (supabase as any).rpc('create_booking_request', sanitizeRpcParams(rpcArgs)) as { data: BookingRpcResult | null; error: { message: string } | null };
 
   if (error) {
     setFormDisabled(false);
