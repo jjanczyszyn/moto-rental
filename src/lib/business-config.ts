@@ -1,6 +1,6 @@
 // M6-6: Shared Business Config — single source of truth for all business constants
 
-export const BUSINESS_NAME = 'Karen & JJ motorcycle rental' as const;
+export const BUSINESS_NAME = 'Karen & JJ Motorcycle Rental' as const;
 export const MANAGER_NAME = 'Karen Adrana Espinoza Ruiz' as const;
 export const MANAGER_WHATSAPP_NUMBER = '+50589750052' as const;
 export const MANAGER_WHATSAPP_LINK = 'https://wa.me/50589750052' as const;

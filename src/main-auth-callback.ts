@@ -14,9 +14,14 @@ const oauthErrorDesc = params.get('error_description');
 if (oauthError) {
   showError(oauthErrorDesc || 'Authentication failed. Please try again.');
 } else {
+  // Guard against race between auth callback and timeout
+  let handled = false;
+
   // Listen for successful auth (Supabase client auto-detects hash fragment tokens)
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_IN') {
+      if (handled) return;
+      handled = true;
       subscription.unsubscribe();
       window.location.href = adminUrl;
     }
@@ -24,6 +29,8 @@ if (oauthError) {
 
   // Timeout fallback
   setTimeout(() => {
+    if (handled) return;
+    handled = true;
     subscription.unsubscribe();
     showError('Authentication failed. Please try again.');
   }, TIMEOUT_MS);

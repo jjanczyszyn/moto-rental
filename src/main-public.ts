@@ -126,7 +126,10 @@ let wizardDeliveryLocation = '';
 let wizardDeliveryNotes = '';
 
 function isValidUrl(str: string): boolean {
-  try { new URL(str); return true; } catch { return false; }
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch { return false; }
 }
 
 function isValidEmail(email: string): boolean {
@@ -358,6 +361,21 @@ async function fetchBookedDates(motorcycleId: string): Promise<void> {
     bookedDateRanges = data.map(b => ({ start: b.start_date, end: b.end_date }));
   } else {
     bookedDateRanges = [];
+    if (error) {
+      console.error('Failed to fetch booked dates:', error.message);
+      const calendar = document.getElementById('calendar');
+      if (calendar) {
+        calendar.setAttribute('data-fetch-warning', 'true');
+        const existingWarning = calendar.parentElement?.querySelector('.booked-dates-warning');
+        if (!existingWarning) {
+          const warning = document.createElement('p');
+          warning.className = 'booked-dates-warning';
+          warning.style.cssText = 'color: #b45309; font-size: 0.85rem; margin-top: 0.25rem;';
+          warning.textContent = 'Note: Could not load booked dates. Some dates shown as available may already be taken.';
+          calendar.parentElement?.appendChild(warning);
+        }
+      }
+    }
   }
 }
 
@@ -1603,6 +1621,12 @@ async function handleSubmit(e: Event): Promise<void> {
   const startDate = (form.querySelector<HTMLInputElement>('#start-date'))!.value;
   const endDate = (form.querySelector<HTMLInputElement>('#end-date'))!.value;
   const pickupNotes = (form.querySelector<HTMLTextAreaElement>('#pickup-notes'))!.value.trim();
+
+  // Pre-submit validation: required fields
+  if (!motoId || !startDate || !endDate || !customerName || (!customerEmail && !customerWhatsapp)) {
+    showFormError('Please fill in all required fields (motorcycle, dates, and at least one contact method).');
+    return;
+  }
 
   setFormDisabled(true);
   setSubmitLoading(true);

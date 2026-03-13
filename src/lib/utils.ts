@@ -20,3 +20,12 @@ export function calculateNights(start: Date, end: Date): number {
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.round((end.getTime() - start.getTime()) / msPerDay);
 }
+
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

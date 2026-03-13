@@ -89,7 +89,7 @@ function renderHeader(email?: string): string {
   if (email) {
     return `
       <div class="admin-header">
-        <h1>Moto Rental — Admin</h1>
+        <h1>Karen & JJ — Admin</h1>
         <div class="admin-user">
           <span class="admin-email">${email}</span>
           <button class="btn" id="signout-btn">Sign Out</button>
@@ -97,7 +97,7 @@ function renderHeader(email?: string): string {
       </div>
     `;
   }
-  return '<div class="admin-header"><h1>Moto Rental — Admin</h1></div>';
+  return '<div class="admin-header"><h1>Karen & JJ — Admin</h1></div>';
 }
 
 function renderLoading(): string {
