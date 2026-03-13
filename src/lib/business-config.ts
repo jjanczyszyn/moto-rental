@@ -23,12 +23,11 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 export const UNIVERSAL_INCLUSIONS = [
+  'Delivery included',
   'Surf racks included',
   '2 helmets included',
-  'Delivery included',
 ] as const;
 
-// TODO: Replace SVG placeholders with real motorcycle photos
 export const MOTORCYCLES = [
   {
     slug: 'yamaha-xt-125-white',
@@ -37,7 +36,7 @@ export const MOTORCYCLES = [
     model: 'XT 125',
     color: 'White',
     transmission: 'Manual',
-    imagePath: '/images/yamaha-xt-125-white.svg',
+    imagePath: '/images/yamaha-xt-125-white.jpg',
   },
   {
     slug: 'blue-genesis-click',
@@ -46,7 +45,7 @@ export const MOTORCYCLES = [
     model: 'Click',
     color: 'Blue',
     transmission: 'Automatic',
-    imagePath: '/images/blue-genesis-click.svg',
+    imagePath: '/images/blue-genesis-click.jpg',
   },
   {
     slug: 'pink-genesis-click',
@@ -55,7 +54,7 @@ export const MOTORCYCLES = [
     model: 'Click',
     color: 'Pink',
     transmission: 'Automatic',
-    imagePath: '/images/pink-genesis-click.svg',
+    imagePath: '/images/pink-genesis-click.jpg',
   },
 ] as const;
 
