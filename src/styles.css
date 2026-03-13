@@ -11,6 +11,7 @@ body {
   line-height: 1.6;
   color: #1a1a1a;
   background-color: #fafafa;
+  overflow-x: hidden;
 }
 
 /* Container */
@@ -43,6 +44,7 @@ body {
 .btn {
   display: inline-block;
   padding: 0.5rem 1rem;
+  min-height: 44px;
   font-size: 1rem;
   font-family: inherit;
   line-height: 1.5;
@@ -73,29 +75,213 @@ body {
 /* Hero */
 .hero {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3rem 1rem 2rem;
 }
 
 .hero h2 {
-  font-size: 1.75rem;
+  font-size: 2rem;
   margin-bottom: 0.5rem;
+  color: #111;
 }
 
-.hero p {
+.hero-subheading {
   color: #555;
   max-width: 36rem;
-  margin: 0 auto;
+  margin: 0 auto 1.25rem;
+  font-size: 1.1rem;
+}
+
+.features-strip {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  list-style: none;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.features-strip li {
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+}
+
+.hero-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+}
+
+.hero-link-whatsapp {
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.hero-link-whatsapp:hover {
+  background: #dcfce7;
+}
+
+.hero-link-map {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.hero-link-map:hover {
+  background: #dbeafe;
+}
+
+.hero-cta {
+  font-size: 1.125rem;
+  padding: 0.75rem 2rem;
+}
+
+/* Mobile: full-width CTAs, stacked links, tighter spacing */
+@media (max-width: 639px) {
+  .hero {
+    padding: 2rem 1rem 1.5rem;
+  }
+
+  .hero-cta {
+    display: block;
+    width: 100%;
+  }
+
+  .hero-links {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-link {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .features-strip {
+    gap: 0.5rem;
+  }
+
+  .features-section {
+    gap: 0.5rem;
+  }
+
+  .contact-links {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contact-btn {
+    display: block;
+    text-align: center;
+    min-height: 44px;
+    line-height: 44px;
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero h2 {
+    font-size: 2.5rem;
+  }
+}
+
+/* Features Strip (below cards) */
+.features-section {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0 0 2.5rem;
+}
+
+.feature-badge {
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  border: 1px solid #bbf7d0;
+}
+
+/* Contact Section */
+.contact-section {
+  text-align: center;
+  padding: 0 0 3rem;
+}
+
+.contact-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.contact-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.contact-btn {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  min-height: 44px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.contact-btn-whatsapp {
+  background: #16a34a;
+  color: #fff;
+}
+
+.contact-btn-whatsapp:hover {
+  background: #15803d;
+}
+
+.contact-btn-map {
+  background: #2563eb;
+  color: #fff;
+}
+
+.contact-btn-map:hover {
+  background: #1d4ed8;
 }
 
 /* Motorcycle Cards */
 .motorcycle-cards {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding: 1rem 0 3rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
+  .motorcycle-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
   .motorcycle-cards {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -104,15 +290,20 @@ body {
 .motorcycle-card {
   background: #fff;
   border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: box-shadow 0.15s;
+}
+
+.motorcycle-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .motorcycle-card-image {
   width: 100%;
-  height: 200px;
+  height: 180px;
   object-fit: cover;
   display: block;
 }
@@ -135,32 +326,467 @@ body {
 }
 
 .motorcycle-card-body h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   margin-bottom: 0.25rem;
 }
 
 .motorcycle-card-meta {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #666;
   margin-bottom: 0.5rem;
 }
 
 .motorcycle-card-rate {
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #2563eb;
-  margin-bottom: 0.5rem;
-}
-
-.motorcycle-card-desc {
-  font-size: 0.875rem;
-  color: #555;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   flex: 1;
 }
 
 .motorcycle-card .book-btn {
-  align-self: flex-start;
+  align-self: stretch;
+  text-align: center;
+}
+
+/* Wizard */
+.wizard-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.wizard-container h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Step Progress Bar */
+.wizard-progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.wizard-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.wizard-step-indicator .wizard-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.wizard-step-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.wizard-step-completed .wizard-step-num {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: #fff;
+}
+
+.wizard-step-completed .wizard-step-label {
+  color: #16a34a;
+}
+
+.wizard-step-active .wizard-step-num {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.wizard-step-active .wizard-step-label {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.wizard-step-upcoming .wizard-step-num {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.wizard-step-upcoming .wizard-step-label {
+  color: #9ca3af;
+}
+
+.wizard-step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  margin: 0 0.25rem;
+  margin-bottom: 1.25rem;
+  min-width: 12px;
+  max-width: 48px;
+}
+
+.wizard-step-completed + .wizard-step-connector {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+/* Layout with summary */
+.wizard-layout-with-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .wizard-layout-with-summary {
+    grid-template-columns: 1fr 260px;
+  }
+}
+
+.wizard-main-content {
+  min-width: 0;
+}
+
+/* Live Summary Panel */
+.wizard-live-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  height: fit-content;
+}
+
+@media (min-width: 640px) {
+  .wizard-live-summary {
+    position: sticky;
+    top: 20px;
+  }
+}
+
+@media (max-width: 639px) {
+  .wizard-live-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .wizard-live-summary .summary-heading {
+    width: 100%;
+  }
+
+  .wizard-live-summary .summary-item {
+    flex: 1;
+    min-width: 100px;
+    border-bottom: none;
+    padding: 0;
+  }
+}
+
+.summary-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.summary-item {
+  padding: 0.625rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-moto-thumb {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.375rem;
+}
+
+.summary-moto-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.summary-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #6b7280;
+  margin-bottom: 0.125rem;
+}
+
+.summary-value {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #1a1a1a;
+}
+
+.summary-detail {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.summary-price {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.125rem;
+}
+
+.summary-discount {
+  color: #16a34a;
+}
+
+.summary-delivery {
+  background: #f0fdf4;
+  border-radius: 8px;
+  padding: 0.625rem;
+  margin: 0.25rem -0.25rem;
+  border: 1px solid #bbf7d0;
+}
+
+/* Section headings in wizard */
+.wizard-section-heading {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.wizard-delivery-heading {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  color: #16a34a;
+}
+
+.wizard-moto-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wizard-moto-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 2px solid #e5e5e5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.wizard-moto-card:hover {
+  border-color: #93c5fd;
+}
+
+.wizard-moto-card.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.wizard-moto-image {
+  width: 80px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.wizard-moto-placeholder {
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.wizard-moto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.wizard-moto-info strong {
+  font-size: 0.9375rem;
+}
+
+.wizard-moto-meta {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.wizard-moto-rate {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* (wizard-summary-panel replaced by wizard-live-summary) */
+
+.wizard-actions {
+  margin-top: 1.5rem;
+  text-align: right;
+}
+
+.wizard-actions-split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wizard-back {
+  background: #e5e7eb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.wizard-back:hover {
+  background: #d1d5db;
+}
+
+.wizard-continue {
+  min-width: 200px;
+}
+
+/* Step 2 date form */
+
+.wizard-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.wizard-date-row input[type="date"] {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-height: 44px;
+}
+
+.wizard-date-summary {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #eff6ff;
+  border-radius: 8px;
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 639px) {
+  .wizard-date-row {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-actions {
+    text-align: center;
+  }
+
+  .wizard-actions-split {
+    flex-direction: row;
+  }
+
+  .wizard-continue {
+    display: block;
+    width: 100%;
+  }
+
+  .wizard-back {
+    min-width: auto;
+  }
+}
+
+/* Step 3 pricing */
+
+.pricing-breakdown {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  background: #fff;
+}
+
+.pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.pricing-discount {
+  color: #16a34a;
+}
+
+.pricing-subtotal {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.pricing-total {
+  border-top: 2px solid #1a1a1a;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Step 4 details */
+
+.wizard-details-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.wizard-details-form label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.wizard-details-form input,
+.wizard-details-form select,
+.wizard-details-form textarea {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-height: 44px;
+}
+
+.wizard-details-form textarea {
+  min-height: auto;
+  resize: vertical;
 }
 
 /* Loading & Error */
@@ -203,6 +829,16 @@ body {
 .form-group label {
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  min-height: 1.1em;
+}
+
+.field-invalid {
+  border-color: #ef4444 !important;
 }
 
 .form-group input,
@@ -255,48 +891,209 @@ body {
   cursor: not-allowed;
 }
 
-/* Booking Success */
+/* Confirmation Page */
 .booking-success {
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
   padding: 2rem 0 3rem;
+}
+
+.success-header {
   text-align: center;
+  margin-bottom: 2rem;
+}
+
+.success-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #22c55e);
+  margin: 0 auto 1rem;
+  position: relative;
+}
+
+.success-check::after {
+  content: '\2713';
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .booking-success h2 {
   font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #16a34a;
+  margin-bottom: 0.25rem;
+  color: #10b981;
+}
+
+.success-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
 }
 
 .reservation-code {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  text-align: center;
   background-color: #f0fdf4;
   border: 2px solid #86efac;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+.reservation-code-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #1a1a1a;
   user-select: all;
 }
 
-.booking-details {
-  text-align: left;
+.reservation-code-hint {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.confirmation-section {
   background: #fff;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.confirmation-section h3 {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.confirmation-moto {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.confirmation-moto-img {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
   border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
+  flex-shrink: 0;
 }
 
-.booking-details p {
-  margin-bottom: 0.25rem;
+.confirmation-moto-meta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 
-.booking-success > p {
-  color: #555;
-  margin-bottom: 1.5rem;
+.confirmation-detail {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.pricing-table {
+  width: 100%;
+}
+
+.pricing-table .pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.375rem 0;
+  font-size: 0.9375rem;
+}
+
+.pricing-table .pricing-total {
+  border-top: 2px solid #1a1a1a;
+  margin-top: 0.375rem;
+  padding-top: 0.625rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.pricing-table .pricing-total span:last-child {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.payment-method-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payment-type {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.payment-handle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.delivery-summary p {
+  margin-bottom: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.delivery-summary a {
+  color: #2563eb;
+}
+
+.delivery-pending {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.next-steps-list {
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.next-steps-list li {
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.whatsapp-cta {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.whatsapp-cta:hover {
+  background: #15803d;
+}
+
+.booking-success #another-booking-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
 /* Admin */
@@ -523,4 +1320,632 @@ body {
 .unauthorized-container p {
   color: #555;
   max-width: 28rem;
+}
+
+/* Metrics bar */
+.metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* View toggle */
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-toggle-btn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+}
+
+.view-toggle-active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+/* Collapsible groups */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.collapse-icon {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* Booking detail panel */
+.booking-detail-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+}
+
+.detail-section {
+  margin-bottom: 0.75rem;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h4 {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.detail-section p {
+  font-size: 0.8125rem;
+  color: #555;
+  margin-bottom: 0.125rem;
+}
+
+.detail-toggle-btn {
+  margin-top: 0.5rem;
+}
+
+/* Payment status */
+.booking-payment-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.payment-status-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.payment-status-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.booking-card-badges {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+@media (max-width: 639px) {
+  .metrics-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Step 5: Contract */
+.contract-body {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.contract-title {
+  text-align: center;
+  font-size: 1.125rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.contract-parties {
+  margin-bottom: 0.5rem;
+}
+
+.contract-body h4 {
+  font-size: 0.9375rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.contract-list {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0.75rem;
+}
+
+.contract-list li {
+  padding: 0.125rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.contract-list li::before {
+  content: "\2022";
+  position: absolute;
+  left: 0.25rem;
+  color: #6b7280;
+}
+
+.contract-signatures {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.contract-sig-block p {
+  margin-bottom: 0.25rem;
+}
+
+.contract-sig-line {
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+/* Signature section */
+.contract-sign-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #2563eb;
+}
+
+.contract-sign-section h4 {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.contract-sig-input {
+  width: 100%;
+  padding: 0.625rem;
+  font-size: 1.125rem;
+  font-family: 'Georgia', serif;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-height: 44px;
+}
+
+.signature-canvas-wrapper {
+  position: relative;
+}
+
+.signature-canvas {
+  width: 100%;
+  max-width: 460px;
+  height: 160px;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-clear-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  min-height: auto;
+  cursor: pointer;
+}
+
+.signature-clear-btn:hover {
+  background: #f0f0f0;
+}
+
+.contract-terms-group {
+  margin-top: 1rem;
+}
+
+.contract-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.contract-checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Contract signed indicator in summary */
+.summary-contract-signed {
+  color: #16a34a;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #1a1a1a;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.375rem;
+  font-size: 0.95rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-outline:hover {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Delivery status badges */
+.delivery-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.delivery-badge-scheduled {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.delivery-badge-delivered {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.delivery-badge-completed {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.delivery-badge-issue {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Admin delivery status section */
+.booking-delivery-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.delivery-status-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.delivery-status-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+@media (max-width: 639px) {
+  .contract-body {
+    padding: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .signature-canvas {
+    height: 120px;
+  }
+}
+
+/* Customer reservation lookup page */
+.customer-lookup-form {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.customer-lookup-form h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.customer-lookup-form p {
+  color: #6b7280;
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+.customer-lookup-form .form-group {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+.customer-lookup-form input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.customer-lookup-form .btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.5rem;
+}
+
+.monospace-input {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.05em;
+}
+
+.reservation-view {
+  max-width: 640px;
+  margin: 2rem auto;
+}
+
+.reservation-view .btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge-approved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge-active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge-completed {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.status-badge-cancelled {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Customer access link on confirmation */
+.customer-access-link {
+  word-break: break-all;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: #2563eb;
+}
+
+.review-cta {
+  background: #f59e0b;
+  color: #fff;
+  font-weight: 600;
+}
+
+.review-cta:hover {
+  background: #d97706;
+}
+
+/* Admin review reminder */
+.review-reminder {
+  margin-top: 0.5rem;
+}
+
+.review-reminder-btn {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+  text-decoration: none;
+}
+
+.review-reminder-btn:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+/* Delivery Board */
+.delivery-board {
+  width: 100%;
+}
+
+.delivery-filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.delivery-filter-btn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+}
+
+.delivery-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.delivery-custom-range input {
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.delivery-day-group {
+  margin-bottom: 1.5rem;
+}
+
+.delivery-day-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.delivery-day-count {
+  display: inline-block;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  vertical-align: middle;
+}
+
+.delivery-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.delivery-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.delivery-card-time {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.delivery-card-body {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.delivery-card-body p {
+  margin: 0.2rem 0;
+}
+
+.delivery-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.delivery-action-btn {
+  min-height: 36px;
+  font-size: 0.8rem;
+}
+
+.delivery-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+}
+
+.metric-card-clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.metric-card-clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-overdue {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 639px) {
+  .delivery-card-actions {
+    flex-direction: column;
+  }
+
+  .delivery-action-btn {
+    min-height: 44px;
+    width: 100%;
+  }
 }

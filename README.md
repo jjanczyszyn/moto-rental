@@ -90,8 +90,9 @@ npm run preview      # Preview production build locally
 ```
 
 Pages:
-- `http://localhost:5173/` — Public landing page (motorcycle cards + booking form)
-- `http://localhost:5173/admin.html` — Manager dashboard (requires Google sign-in)
+- `http://localhost:5173/` — Public landing page (motorcycle cards, 6-step booking wizard)
+- `http://localhost:5173/admin.html` — Manager dashboard (metrics, booking management, delivery tracking)
+- `http://localhost:5173/customer.html` — Customer reservation lookup (code + secret)
 - `http://localhost:5173/auth-callback.html` — OAuth callback (not visited directly)
 
 ## Available Scripts
@@ -110,14 +111,17 @@ Pages:
 src/
   lib/
     auth.ts               — auth helpers (signIn, signOut, getSession)
+    business-config.ts    — business constants (pricing, payment methods, motorcycles, contact info)
     config.ts             — environment variable access, BASE_PATH, AUTH_CALLBACK_URL, MANAGER_EMAIL
     database.types.ts     — Supabase database types (generated post-bootstrap)
+    pricing.ts            — rental pricing calculator (daily, weekly, biweekly, monthly tiers)
     supabase.ts           — typed Supabase client singleton
     types.ts              — data model types (Motorcycle, Booking, etc.)
     utils.ts              — date utilities (formatDate, parseDate, calculateNights)
   styles.css              — shared styles (reset, typography, cards, forms, dashboard, badges)
-  main-public.ts          — public landing: hero, motorcycle cards, booking form, RPC integration
-  main-admin.ts           — admin dashboard: auth, booking groups, status actions, notes editing
+  main-public.ts          — public landing: hero, motorcycle cards, 6-step booking wizard, contract signing
+  main-admin.ts           — admin dashboard: metrics bar, booking management, delivery/payment tracking, review reminders
+  main-customer.ts        — customer reservation lookup: code + secret access, booking details view
   main-auth-callback.ts   — OAuth callback: session resolution + redirect
   vite-env.d.ts           — Vite client type declarations
 index.html                — public landing page
@@ -252,4 +256,10 @@ npm run build
 - [x] **M2**: Supabase Provisioning + Database Security Spine
 - [x] **M3**: Public Experience
 - [x] **M4**: Admin Experience
-- [ ] **M5**: Documentation + Hardening + Final QA *(in progress)*
+- [x] **M5**: Documentation + Hardening + Final QA
+- [x] **M6**: Business Config + Pricing Engine + Data Model Upgrade
+- [x] **M7**: Motorcycle Image Pipeline
+- [x] **M8**: Guided Booking Wizard (6-step flow)
+- [x] **M9**: Contract Signing + Delivery Details
+- [x] **M10**: Customer Access Page + Admin Expansion
+- [x] **M11**: Review Flow + Final Polish

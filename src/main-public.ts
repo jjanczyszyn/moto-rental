@@ -1,6 +1,8 @@
 import { supabase } from './lib/supabase';
 import type { Database } from './lib/database.types';
 import { formatDate, parseDate, isValidDateRange, calculateNights } from './lib/utils';
+import { BUSINESS_NAME, UNIVERSAL_INCLUSIONS, MANAGER_WHATSAPP_LINK, MAP_LINK, PAYMENT_METHODS, MANAGER_NAME, PRICING } from './lib/business-config';
+import { calculatePricing } from './lib/pricing';
 
 type Motorcycle = Database['public']['Tables']['motorcycles']['Row'];
 // The RPC has overloaded signatures in generated types; extract the new one explicitly.
@@ -12,6 +14,14 @@ type BookingRpcArgs = {
   p_start_date: string;
   p_end_date: string;
   p_pickup_notes?: string;
+  p_payment_method?: string;
+  p_delivery_date_time?: string;
+  p_delivery_map_link?: string;
+  p_delivery_location_description?: string;
+  p_typed_signature_name?: string;
+  p_drawn_signature_data?: string;
+  p_contract_signed_at?: string;
+  p_contract_text?: string;
 };
 type BookingRpcResult = { reservation_code: string; booking_id: string; customer_access_secret: string };
 
@@ -23,10 +33,34 @@ let motorcycles: Motorcycle[] = [];
 // --- Render helpers ---
 
 function renderHero(): string {
+  const inclusions = UNIVERSAL_INCLUSIONS.map(item => `<li>${item}</li>`).join('');
   return `
     <section class="hero">
-      <h2>Explore the mountains on two wheels</h2>
-      <p>Three handpicked motorcycles available for daily rental. Book online, pick up, and ride.</p>
+      <h2>${BUSINESS_NAME}</h2>
+      <p class="hero-subheading">Reliable scooter &amp; motorcycle rentals with surf racks, 2 helmets, and delivery included.</p>
+      <ul class="features-strip">${inclusions}</ul>
+      <div class="hero-links">
+        <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener" class="hero-link hero-link-whatsapp">WhatsApp Us</a>
+        <a href="${MAP_LINK}" target="_blank" rel="noopener" class="hero-link hero-link-map">Find Us</a>
+      </div>
+      <a href="#booking-section" class="btn btn-primary hero-cta">Book a Bike Now</a>
+    </section>
+  `;
+}
+
+function renderFeaturesStrip(): string {
+  const badges = UNIVERSAL_INCLUSIONS.map(item => `<span class="feature-badge">${item}</span>`).join('');
+  return `<section class="features-section">${badges}</section>`;
+}
+
+function renderContactSection(): string {
+  return `
+    <section class="contact-section">
+      <h3>Get in touch</h3>
+      <div class="contact-links">
+        <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener" class="contact-btn contact-btn-whatsapp">WhatsApp Us</a>
+        <a href="${MAP_LINK}" target="_blank" rel="noopener" class="contact-btn contact-btn-map">Find Us on Map</a>
+      </div>
     </section>
   `;
 }
@@ -44,16 +78,16 @@ function renderCard(moto: Motorcycle): string {
   const image = moto.image_url
     ? `<img src="${moto.image_url}" alt="${moto.name}" class="motorcycle-card-image">`
     : `<div class="motorcycle-card-image motorcycle-card-placeholder">${moto.name}</div>`;
+  const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
 
   return `
     <div class="motorcycle-card">
       ${image}
       <div class="motorcycle-card-body">
         <h3>${moto.name}</h3>
-        <p class="motorcycle-card-meta">${moto.brand} ${moto.model} · ${moto.year ?? ''}</p>
+        <p class="motorcycle-card-meta">${meta}</p>
         <p class="motorcycle-card-rate">$${rate}/day</p>
-        <p class="motorcycle-card-desc">${moto.description ?? ''}</p>
-        <button class="btn btn-primary book-btn" data-motorcycle-id="${moto.id}">Book This Bike</button>
+        <button class="btn btn-primary book-btn" data-motorcycle-id="${moto.id}">Book this moto</button>
       </div>
     </div>
   `;
@@ -68,6 +102,960 @@ function renderCards(motos: Motorcycle[]): string {
       ${motos.map(renderCard).join('')}
     </section>
   `;
+}
+
+// --- Wizard ---
+
+const WIZARD_STEPS = [
+  { num: 1, label: 'Choose' },
+  { num: 2, label: 'Dates' },
+  { num: 3, label: 'Pricing' },
+  { num: 4, label: 'Details' },
+  { num: 5, label: 'Contract' },
+  { num: 6, label: 'Confirm' },
+] as const;
+let wizardSelectedMotoId: string | null = null;
+let wizardStartDate: string | null = null;
+let wizardEndDate: string | null = null;
+let wizardCustomerName = '';
+let wizardCustomerWhatsapp = '';
+let wizardCustomerEmail = '';
+let wizardPaymentMethod = '';
+let wizardDeliveryDate = '';
+let wizardDeliveryMap = '';
+let wizardDeliveryLocation = '';
+let wizardDeliveryNotes = '';
+
+function isValidUrl(str: string): boolean {
+  try { new URL(str); return true; } catch { return false; }
+}
+let wizardTypedSignature = '';
+let wizardDrawnSignatureData = '';
+let wizardTermsAccepted = false;
+
+function renderWizardStepIndicators(currentStep: number): string {
+  const indicators = WIZARD_STEPS.map(s => {
+    let stateClass = 'wizard-step-upcoming';
+    if (s.num < currentStep + 1) stateClass = 'wizard-step-completed';
+    if (s.num === currentStep + 1) stateClass = 'wizard-step-active';
+
+    return `<div class="wizard-step-indicator ${stateClass}">
+      <span class="wizard-step-num">${s.num < currentStep + 1 ? '&#10003;' : s.num}</span>
+      <span class="wizard-step-label">${s.label}</span>
+    </div>`;
+  }).join('<div class="wizard-step-connector"></div>');
+
+  return `<div class="wizard-progress-bar">${indicators}</div>`;
+}
+
+function renderWizardLiveSummary(): string {
+  const sections: string[] = [];
+
+  if (wizardSelectedMotoId) {
+    const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
+    if (moto) {
+      const image = moto.image_url
+        ? `<img src="${moto.image_url}" alt="${moto.name}" class="summary-moto-thumb">`
+        : `<div class="summary-moto-thumb wizard-moto-placeholder">${moto.name}</div>`;
+      sections.push(`
+        <div class="summary-item">
+          ${image}
+          <div class="summary-moto-name">${moto.name}</div>
+        </div>
+      `);
+    }
+  }
+
+  if (wizardStartDate && wizardEndDate) {
+    const start = parseDate(wizardStartDate);
+    const end = parseDate(wizardEndDate);
+    const days = calculateNights(start, end);
+    if (days > 0) {
+      const fmtOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+      const startFmt = start.toLocaleDateString('en-US', fmtOpts);
+      const endFmt = end.toLocaleDateString('en-US', fmtOpts);
+      sections.push(`
+        <div class="summary-item">
+          <div class="summary-label">Dates</div>
+          <div class="summary-value">${startFmt} \u2192 ${endFmt}</div>
+          <div class="summary-detail">${days} day${days !== 1 ? 's' : ''}</div>
+        </div>
+      `);
+
+      const pricing = calculatePricing(days);
+      sections.push(`
+        <div class="summary-item">
+          <div class="summary-label">Total</div>
+          <div class="summary-value summary-price">$${pricing.rentalTotal.toFixed(2)}</div>
+          ${pricing.discountLabel ? `<div class="summary-detail summary-discount">${pricing.discountLabel}</div>` : ''}
+        </div>
+      `);
+    }
+  }
+
+  if (wizardCustomerName) {
+    sections.push(`
+      <div class="summary-item">
+        <div class="summary-label">Contact</div>
+        <div class="summary-value">${wizardCustomerName}</div>
+        ${wizardCustomerWhatsapp ? `<div class="summary-detail">${wizardCustomerWhatsapp}</div>` : ''}
+      </div>
+    `);
+  }
+
+  if (wizardDeliveryDate || wizardDeliveryLocation || wizardDeliveryMap) {
+    sections.push(`
+      <div class="summary-item summary-delivery">
+        <div class="summary-label">Delivery</div>
+        ${wizardDeliveryDate ? `<div class="summary-value">${wizardDeliveryDate}</div>` : ''}
+        ${wizardDeliveryLocation ? `<div class="summary-detail">${wizardDeliveryLocation}</div>` : ''}
+        ${wizardDeliveryMap && !wizardDeliveryLocation ? `<div class="summary-detail">Location provided</div>` : ''}
+      </div>
+    `);
+  }
+
+  if (wizardTypedSignature && wizardTermsAccepted) {
+    sections.push(`
+      <div class="summary-item">
+        <div class="summary-label">Contract</div>
+        <div class="summary-value summary-contract-signed">Signed</div>
+      </div>
+    `);
+  }
+
+  if (sections.length === 0) return '';
+
+  return `
+    <aside class="wizard-live-summary">
+      <h3 class="summary-heading">Your Booking</h3>
+      ${sections.join('')}
+    </aside>
+  `;
+}
+
+function renderWizardStep1(preselectedId?: string): string {
+  const cards = motorcycles.map(moto => {
+    const rate = Number(moto.daily_rate).toFixed(2);
+    const selected = moto.id === preselectedId;
+    const image = moto.image_url
+      ? `<img src="${moto.image_url}" alt="${moto.name}" class="wizard-moto-image">`
+      : `<div class="wizard-moto-image wizard-moto-placeholder">${moto.name}</div>`;
+    const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
+    return `
+      <div class="wizard-moto-card${selected ? ' selected' : ''}" data-moto-id="${moto.id}">
+        ${image}
+        <div class="wizard-moto-info">
+          <strong>${moto.name}</strong>
+          <span class="wizard-moto-meta">${meta}</span>
+          <span class="wizard-moto-rate">$${rate}/day</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <section class="wizard-container" id="booking-section">
+      ${renderWizardStepIndicators(0)}
+      <div class="wizard-layout-with-summary">
+        <div class="wizard-main-content">
+          <h2>Choose your motorcycle</h2>
+          <div class="wizard-moto-grid">${cards}</div>
+          <div class="wizard-actions">
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-btn"${preselectedId ? '' : ' disabled'}>Continue to Dates</button>
+          </div>
+        </div>
+        ${renderWizardLiveSummary()}
+      </div>
+    </section>
+  `;
+}
+
+function showWizard(preselectedId?: string): void {
+  wizardSelectedMotoId = preselectedId ?? null;
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep1(preselectedId));
+  wireWizardStep1();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep1(): void {
+  const cards = main!.querySelectorAll<HTMLDivElement>('.wizard-moto-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const motoId = card.dataset.motoId;
+      if (!motoId) return;
+      wizardSelectedMotoId = motoId;
+
+      // Update selection visuals
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      // Enable continue button
+      const continueBtn = document.getElementById('wizard-continue-btn') as HTMLButtonElement | null;
+      if (continueBtn) continueBtn.disabled = false;
+    });
+  });
+
+  const continueBtn = document.getElementById('wizard-continue-btn');
+  continueBtn?.addEventListener('click', () => {
+    if (wizardSelectedMotoId) {
+      showWizardStep2();
+    }
+  });
+}
+
+function renderWizardStep2(): string {
+  const today = todayStr();
+  const startVal = wizardStartDate ?? '';
+  const endMin = wizardStartDate ?? today;
+  const endVal = wizardEndDate ?? '';
+
+  return `
+    <section class="wizard-container" id="booking-section">
+      ${renderWizardStepIndicators(1)}
+      <div class="wizard-layout-with-summary">
+        <div class="wizard-main-content">
+          <h2>Choose your dates</h2>
+          <div class="wizard-date-form">
+            <div class="wizard-date-row">
+              <div class="form-group">
+                <label for="wizard-start-date">Start Date</label>
+                <input type="date" id="wizard-start-date" min="${today}" value="${startVal}" required>
+              </div>
+              <div class="form-group">
+                <label for="wizard-end-date">End Date</label>
+                <input type="date" id="wizard-end-date" min="${endMin}" value="${endVal}" required>
+              </div>
+            </div>
+            <div id="wizard-date-error" class="form-error" hidden></div>
+            <div id="wizard-date-summary" class="wizard-date-summary" hidden></div>
+          </div>
+          <div class="wizard-actions wizard-actions-split">
+            <button class="btn wizard-back" id="wizard-back-2">Back</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-2" disabled>Continue</button>
+          </div>
+        </div>
+        ${renderWizardLiveSummary()}
+      </div>
+    </section>
+  `;
+}
+
+async function checkAvailability(motorcycleId: string, startDate: string, endDate: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('motorcycle_id', motorcycleId)
+    .in('status', ['approved', 'active'])
+    .lte('start_date', endDate)
+    .gte('end_date', startDate)
+    .limit(1);
+
+  if (error) {
+    // Fail open — server will catch on submit
+    return true;
+  }
+
+  return !data || data.length === 0;
+}
+
+async function updateWizardDateSummary(): Promise<void> {
+  const startEl = document.getElementById('wizard-start-date') as HTMLInputElement | null;
+  const endEl = document.getElementById('wizard-end-date') as HTMLInputElement | null;
+  const summaryEl = document.getElementById('wizard-date-summary');
+  const errorEl = document.getElementById('wizard-date-error');
+  const continueBtn = document.getElementById('wizard-continue-2') as HTMLButtonElement | null;
+
+  if (!startEl || !endEl || !summaryEl || !errorEl || !continueBtn) return;
+
+  // Hide both by default
+  summaryEl.hidden = true;
+  errorEl.hidden = true;
+  continueBtn.disabled = true;
+
+  if (!startEl.value || !endEl.value) return;
+
+  const start = parseDate(startEl.value);
+  const end = parseDate(endEl.value);
+
+  if (!isValidDateRange(start, end)) {
+    errorEl.textContent = 'End date must be on or after start date.';
+    errorEl.hidden = false;
+    return;
+  }
+
+  const days = calculateNights(start, end);
+  if (days <= 0) {
+    errorEl.textContent = 'Rental must be at least 1 day.';
+    errorEl.hidden = false;
+    return;
+  }
+
+  // Show loading state while checking availability
+  summaryEl.textContent = 'Checking availability...';
+  summaryEl.hidden = false;
+
+  const available = await checkAvailability(wizardSelectedMotoId!, startEl.value, endEl.value);
+
+  if (!available) {
+    errorEl.textContent = 'This motorcycle is not available for the selected dates. Please choose different dates.';
+    errorEl.hidden = false;
+    summaryEl.hidden = true;
+    continueBtn.disabled = true;
+    return;
+  }
+
+  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+  const startFmt = start.toLocaleDateString('en-US', fmtOpts);
+  const endFmt = end.toLocaleDateString('en-US', fmtOpts);
+  summaryEl.textContent = `${days} day${days !== 1 ? 's' : ''} — ${startFmt} to ${endFmt}`;
+  summaryEl.hidden = false;
+  continueBtn.disabled = false;
+}
+
+async function showWizardStep2(): Promise<void> {
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep2());
+  wireWizardStep2();
+  await updateWizardDateSummary();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep2(): void {
+  const startEl = document.getElementById('wizard-start-date') as HTMLInputElement | null;
+  const endEl = document.getElementById('wizard-end-date') as HTMLInputElement | null;
+
+  startEl?.addEventListener('change', async () => {
+    wizardStartDate = startEl.value;
+    if (startEl.value && endEl) {
+      endEl.min = startEl.value;
+      if (endEl.value && endEl.value < startEl.value) {
+        endEl.value = '';
+        wizardEndDate = null;
+      }
+    }
+    await updateWizardDateSummary();
+  });
+
+  endEl?.addEventListener('change', async () => {
+    wizardEndDate = endEl.value;
+    await updateWizardDateSummary();
+  });
+
+  document.getElementById('wizard-back-2')?.addEventListener('click', () => {
+    showWizard(wizardSelectedMotoId ?? undefined);
+  });
+
+  document.getElementById('wizard-continue-2')?.addEventListener('click', () => {
+    if (wizardSelectedMotoId && wizardStartDate && wizardEndDate) {
+      showWizardStep3();
+    }
+  });
+}
+
+function renderWizardStep3(): string {
+  const days = calculateNights(parseDate(wizardStartDate!), parseDate(wizardEndDate!));
+  const pricing = calculatePricing(days);
+
+  return `
+    <section class="wizard-container" id="booking-section">
+      ${renderWizardStepIndicators(2)}
+      <div class="wizard-layout-with-summary">
+        <div class="wizard-main-content">
+          <h2>Review pricing</h2>
+          <div class="pricing-breakdown">
+            <div class="pricing-row">
+              <span>${pricing.days} day${pricing.days !== 1 ? 's' : ''} \u00d7 $${pricing.dailyRate}/day</span>
+              <span>$${pricing.baseSubtotal.toFixed(2)}</span>
+            </div>
+            ${pricing.discountLabel ? `
+            <div class="pricing-row pricing-discount">
+              <span>${pricing.discountLabel}</span>
+              <span>\u2212$${pricing.discountAmount.toFixed(2)}</span>
+            </div>` : ''}
+            <div class="pricing-row pricing-subtotal">
+              <span>Rental total</span>
+              <span>$${pricing.rentalTotal.toFixed(2)}</span>
+            </div>
+            <div class="pricing-row">
+              <span>Refundable security deposit</span>
+              <span>$${pricing.securityDeposit.toFixed(2)}</span>
+            </div>
+            <div class="pricing-row pricing-total">
+              <span>Total due</span>
+              <span>$${pricing.totalDue.toFixed(2)}</span>
+            </div>
+          </div>
+          <div class="wizard-actions wizard-actions-split">
+            <button class="btn wizard-back" id="wizard-back-3">Back</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-3">Continue to Details</button>
+          </div>
+        </div>
+        ${renderWizardLiveSummary()}
+      </div>
+    </section>
+  `;
+}
+
+function showWizardStep3(): void {
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep3());
+  wireWizardStep3();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep3(): void {
+  document.getElementById('wizard-back-3')?.addEventListener('click', () => {
+    showWizardStep2();
+  });
+
+  document.getElementById('wizard-continue-3')?.addEventListener('click', () => {
+    showWizardStep4();
+  });
+}
+
+function renderWizardStep4(): string {
+  const paymentOptions = PAYMENT_METHODS
+    .map(pm => {
+      const sel = pm.type === wizardPaymentMethod ? ' selected' : '';
+      return `<option value="${pm.type}"${sel}>${pm.type}${pm.handle ? ` (${pm.handle})` : ''}</option>`;
+    })
+    .join('');
+
+  return `
+    <section class="wizard-container" id="booking-section">
+      ${renderWizardStepIndicators(3)}
+      <div class="wizard-layout-with-summary">
+        <div class="wizard-main-content">
+          <h3 class="wizard-section-heading">Your Contact Info</h3>
+          <div class="wizard-details-form">
+            <div class="form-group">
+              <label for="wizard-name">Full Name *</label>
+              <input type="text" id="wizard-name" value="${wizardCustomerName}" required>
+            </div>
+            <div class="form-group">
+              <label for="wizard-whatsapp">WhatsApp Number *</label>
+              <input type="tel" id="wizard-whatsapp" value="${wizardCustomerWhatsapp}" required>
+            </div>
+            <div class="form-group">
+              <label for="wizard-email">Email (optional)</label>
+              <input type="email" id="wizard-email" value="${wizardCustomerEmail}">
+            </div>
+            <div class="form-group">
+              <label for="wizard-payment">Payment Method *</label>
+              <select id="wizard-payment" required>
+                <option value="">Select payment method</option>
+                ${paymentOptions}
+              </select>
+            </div>
+          </div>
+
+          <h3 class="wizard-section-heading wizard-delivery-heading">Where should we deliver your moto?</h3>
+          <div class="wizard-details-form">
+            <div class="form-group">
+              <label for="wizard-delivery-date">Delivery Date & Time</label>
+              <input type="datetime-local" id="wizard-delivery-date" value="${wizardDeliveryDate}">
+            </div>
+            <div class="form-group">
+              <label for="wizard-delivery-location">Where exactly? (hotel name, landmark, address)</label>
+              <input type="text" id="wizard-delivery-location" placeholder="e.g. Hotel Selva Verde, Room 12" value="${wizardDeliveryLocation}">
+            </div>
+            <div class="form-group">
+              <label for="wizard-delivery-map">Map link (optional)</label>
+              <input type="url" id="wizard-delivery-map" placeholder="https://maps.google.com/..." value="${wizardDeliveryMap}">
+              <span class="field-error" id="wizard-delivery-map-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="wizard-delivery-notes">Anything else we should know?</label>
+              <textarea id="wizard-delivery-notes" rows="2">${wizardDeliveryNotes}</textarea>
+            </div>
+          </div>
+
+          <div class="wizard-actions wizard-actions-split">
+            <button class="btn wizard-back" id="wizard-back-4">Back</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-4" disabled>Continue to Contract</button>
+          </div>
+        </div>
+        ${renderWizardLiveSummary()}
+      </div>
+    </section>
+  `;
+}
+
+function showWizardStep4(): void {
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep4());
+  wireWizardStep4();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep4(): void {
+  const nameEl = document.getElementById('wizard-name') as HTMLInputElement;
+  const whatsappEl = document.getElementById('wizard-whatsapp') as HTMLInputElement;
+  const emailEl = document.getElementById('wizard-email') as HTMLInputElement;
+  const paymentEl = document.getElementById('wizard-payment') as HTMLSelectElement;
+  const deliveryDateEl = document.getElementById('wizard-delivery-date') as HTMLInputElement;
+  const deliveryLocationEl = document.getElementById('wizard-delivery-location') as HTMLInputElement;
+  const deliveryMapEl = document.getElementById('wizard-delivery-map') as HTMLInputElement;
+  const deliveryMapError = document.getElementById('wizard-delivery-map-error')!;
+  const deliveryNotesEl = document.getElementById('wizard-delivery-notes') as HTMLTextAreaElement;
+
+  const updateContinue = () => {
+    const btn = document.getElementById('wizard-continue-4') as HTMLButtonElement;
+    btn.disabled = !(nameEl.value.trim() && whatsappEl.value.trim() && paymentEl.value);
+    wizardCustomerName = nameEl.value.trim();
+    wizardCustomerWhatsapp = whatsappEl.value.trim();
+    wizardCustomerEmail = emailEl.value.trim();
+    wizardPaymentMethod = paymentEl.value;
+    wizardDeliveryDate = deliveryDateEl.value;
+    wizardDeliveryLocation = deliveryLocationEl.value.trim();
+    wizardDeliveryMap = deliveryMapEl.value.trim();
+    wizardDeliveryNotes = deliveryNotesEl.value.trim();
+
+    // Inline URL validation for map link
+    if (wizardDeliveryMap && !isValidUrl(wizardDeliveryMap)) {
+      deliveryMapError.textContent = 'Please enter a valid URL';
+      deliveryMapEl.classList.add('field-invalid');
+    } else {
+      deliveryMapError.textContent = '';
+      deliveryMapEl.classList.remove('field-invalid');
+    }
+  };
+
+  nameEl?.addEventListener('input', updateContinue);
+  whatsappEl?.addEventListener('input', updateContinue);
+  paymentEl?.addEventListener('change', updateContinue);
+  emailEl?.addEventListener('input', updateContinue);
+  deliveryDateEl?.addEventListener('change', updateContinue);
+  deliveryLocationEl?.addEventListener('input', updateContinue);
+  deliveryMapEl?.addEventListener('input', updateContinue);
+  deliveryNotesEl?.addEventListener('input', updateContinue);
+
+  // Check if state already filled (back navigation)
+  updateContinue();
+
+  document.getElementById('wizard-back-4')?.addEventListener('click', () => {
+    showWizardStep3();
+  });
+
+  document.getElementById('wizard-continue-4')?.addEventListener('click', () => {
+    showWizardStep5();
+  });
+}
+
+function generateContractText(): string {
+  const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
+  const motoName = moto ? `${moto.brand} ${moto.model}` : '';
+  const days = calculateNights(parseDate(wizardStartDate!), parseDate(wizardEndDate!));
+  const pricing = calculatePricing(days);
+  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+  const startFmt = parseDate(wizardStartDate!).toLocaleDateString('en-US', fmtOpts);
+  const endFmt = parseDate(wizardEndDate!).toLocaleDateString('en-US', fmtOpts);
+
+  const paymentList = PAYMENT_METHODS
+    .map(pm => pm.handle ? `${pm.type} (${pm.handle})` : pm.type)
+    .join(', ');
+
+  return [
+    'MOTORCYCLE RENTAL AGREEMENT',
+    '',
+    'This agreement is made between:',
+    `  Manager: ${MANAGER_NAME}`,
+    `  Renter: ${wizardCustomerName}`,
+    '',
+    '1. Motorcycle Details',
+    `  Make & Model: ${motoName}`,
+    '',
+    '2. Rental Terms',
+    'The renter agrees to use the motorcycle responsibly and return it in the same condition as received.',
+    `  Rental Period: From ${startFmt} to ${endFmt}`,
+    `  Rental Fee: $${pricing.rentalTotal.toFixed(2)} (payable in advance)`,
+    `Payment Options: ${paymentList}`,
+    '',
+    '3. Liability & Damages',
+    '  - The renter is fully responsible for any damage, loss, or theft of the motorcycle during the rental period.',
+    '  - In case of damage, the renter agrees to cover the full repair costs.',
+    '  - In case of theft or total loss, the renter agrees to compensate the owner with the full market value of the motorcycle.',
+    '',
+    '4. Insurance & Legal Responsibilities',
+    '  - The renter must follow all traffic laws and is responsible for any fines or penalties incurred.',
+    `  - The motorcycle is insured until ${PRICING.insuranceValidUntil}, but the renter is responsible for any damages not covered by insurance.`,
+    '',
+    '5. Security Deposit',
+    `A refundable security deposit of $${PRICING.securityDepositUsd} is required before rental and will be returned upon the motorcycle's return in good condition.`,
+    '',
+    '6. Termination & Agreement',
+    'The owner reserves the right to terminate the rental at any time if the renter violates any terms. By signing this contract, the renter confirms that they have read, understood, and agree to all terms and conditions stated above.',
+    '',
+    `Owner: ${MANAGER_NAME}`,
+    `Renter (typed): ${wizardTypedSignature}`,
+    `Signed at: ${new Date().toISOString()}`,
+  ].join('\n');
+}
+
+function showPrintableContract(): void {
+  const contractText = generateContractText();
+  const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
+  const motoName = moto ? `${moto.brand} ${moto.model}` : '';
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rental Agreement — ${motoName}</title>
+  <style>
+    body { font-family: Georgia, 'Times New Roman', serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
+    h1 { text-align: center; font-size: 1.4rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    p, li { font-size: 0.95rem; }
+    ul { padding-left: 1.5rem; }
+    .sig-block { margin-top: 2rem; display: flex; gap: 2rem; }
+    .sig-block > div { flex: 1; }
+    .sig-line { border-top: 1px solid #333; margin-top: 2.5rem; padding-top: 0.3rem; font-size: 0.85rem; }
+    .sig-drawn { max-width: 300px; max-height: 120px; margin-top: 0.5rem; }
+    .print-hide { margin-bottom: 1rem; }
+    @media print { .print-hide { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="print-hide"><button onclick="window.print()">Print / Save as PDF</button></div>
+  <h1>MOTORCYCLE RENTAL AGREEMENT</h1>
+  <p>This agreement is made between:</p>
+  <ul>
+    <li><strong>Manager:</strong> ${MANAGER_NAME}</li>
+    <li><strong>Renter:</strong> ${wizardCustomerName}</li>
+  </ul>
+  <h2>1. Motorcycle Details</h2>
+  <ul><li>Make &amp; Model: ${motoName}</li></ul>
+  <h2>2. Rental Terms</h2>
+  <p>The renter agrees to use the motorcycle responsibly and return it in the same condition as received.</p>
+  <pre style="white-space: pre-wrap; font-family: inherit; font-size: 0.95rem;">${contractText.split('\n').slice(10, 14).join('\n')}</pre>
+  <h2>3. Liability &amp; Damages</h2>
+  <ul>
+    <li>The renter is fully responsible for any damage, loss, or theft of the motorcycle during the rental period.</li>
+    <li>In case of damage, the renter agrees to cover the full repair costs.</li>
+    <li>In case of theft or total loss, the renter agrees to compensate the owner with the full market value of the motorcycle.</li>
+  </ul>
+  <h2>4. Insurance &amp; Legal Responsibilities</h2>
+  <ul>
+    <li>The renter must follow all traffic laws and is responsible for any fines or penalties incurred.</li>
+    <li>The motorcycle is insured until ${PRICING.insuranceValidUntil}, but the renter is responsible for any damages not covered by insurance.</li>
+  </ul>
+  <h2>5. Security Deposit</h2>
+  <p>A refundable security deposit of $${PRICING.securityDepositUsd} is required before rental and will be returned upon the motorcycle's return in good condition.</p>
+  <h2>6. Termination &amp; Agreement</h2>
+  <p>The owner reserves the right to terminate the rental at any time if the renter violates any terms. By signing this contract, the renter confirms that they have read, understood, and agree to all terms and conditions stated above.</p>
+  <div class="sig-block">
+    <div>
+      <p><strong>Owner:</strong></p>
+      <p>${MANAGER_NAME}</p>
+      <div class="sig-line">Signature</div>
+    </div>
+    <div>
+      <p><strong>Renter:</strong></p>
+      <p>${wizardTypedSignature}</p>
+      ${wizardDrawnSignatureData ? `<img src="${wizardDrawnSignatureData}" alt="Drawn signature" class="sig-drawn">` : ''}
+      <div class="sig-line">Signature</div>
+    </div>
+  </div>
+</body>
+</html>`);
+  printWindow.document.close();
+}
+
+function renderContractBody(): string {
+  const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
+  const motoName = moto ? `${moto.brand} ${moto.model}` : '';
+  const days = calculateNights(parseDate(wizardStartDate!), parseDate(wizardEndDate!));
+  const pricing = calculatePricing(days);
+  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+  const startFmt = parseDate(wizardStartDate!).toLocaleDateString('en-US', fmtOpts);
+  const endFmt = parseDate(wizardEndDate!).toLocaleDateString('en-US', fmtOpts);
+
+  const paymentList = PAYMENT_METHODS
+    .map(pm => pm.handle ? `${pm.type} (${pm.handle})` : pm.type)
+    .map(s => `<li>${s}</li>`)
+    .join('');
+
+  return `
+    <div class="contract-body">
+      <h3 class="contract-title">MOTORCYCLE RENTAL AGREEMENT</h3>
+      <p class="contract-parties">This agreement is made between:</p>
+      <ul class="contract-list">
+        <li><strong>Manager:</strong> ${MANAGER_NAME}</li>
+        <li><strong>Renter:</strong> ${wizardCustomerName}</li>
+      </ul>
+
+      <h4>1. Motorcycle Details</h4>
+      <ul class="contract-list"><li>Make &amp; Model: ${motoName}</li></ul>
+
+      <h4>2. Rental Terms</h4>
+      <p>The renter agrees to use the motorcycle responsibly and return it in the same condition as received.</p>
+      <ul class="contract-list">
+        <li>Rental Period: From ${startFmt} to ${endFmt}</li>
+        <li>Rental Fee: $${pricing.rentalTotal.toFixed(2)} (payable in advance)</li>
+      </ul>
+      <p>Payment Options:</p>
+      <ul class="contract-list">${paymentList}</ul>
+
+      <h4>3. Liability &amp; Damages</h4>
+      <ul class="contract-list">
+        <li>The renter is fully responsible for any damage, loss, or theft of the motorcycle during the rental period.</li>
+        <li>In case of damage, the renter agrees to cover the full repair costs.</li>
+        <li>In case of theft or total loss, the renter agrees to compensate the owner with the full market value of the motorcycle.</li>
+      </ul>
+
+      <h4>4. Insurance &amp; Legal Responsibilities</h4>
+      <ul class="contract-list">
+        <li>The renter must follow all traffic laws and is responsible for any fines or penalties incurred.</li>
+        <li>The motorcycle is insured until ${PRICING.insuranceValidUntil}, but the renter is responsible for any damages not covered by insurance.</li>
+      </ul>
+
+      <h4>5. Security Deposit</h4>
+      <p>A refundable security deposit of $${PRICING.securityDepositUsd} is required before rental and will be returned upon the motorcycle's return in good condition.</p>
+
+      <h4>6. Termination &amp; Agreement</h4>
+      <p>The owner reserves the right to terminate the rental at any time if the renter violates any terms. By signing this contract, the renter confirms that they have read, understood, and agree to all terms and conditions stated above.</p>
+
+      <div class="contract-signatures">
+        <div class="contract-sig-block">
+          <p><strong>Owner:</strong></p>
+          <p>${MANAGER_NAME}</p>
+          <p class="contract-sig-line">Signature: ____________________________</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWizardStep5(): string {
+  return `
+    <section class="wizard-container" id="booking-section">
+      ${renderWizardStepIndicators(4)}
+      <div class="wizard-layout-with-summary">
+        <div class="wizard-main-content">
+          <h2>Review &amp; Sign Contract</h2>
+          ${renderContractBody()}
+
+          <div class="contract-sign-section">
+            <h4>Your Signature</h4>
+            <div class="form-group">
+              <label for="wizard-typed-sig">Type your full name as signature *</label>
+              <input type="text" id="wizard-typed-sig" class="contract-sig-input" value="${wizardTypedSignature}" placeholder="${wizardCustomerName}" required>
+            </div>
+            <div class="form-group">
+              <label>Draw your signature *</label>
+              <div class="signature-canvas-wrapper">
+                <canvas id="wizard-sig-canvas" class="signature-canvas" width="460" height="160"></canvas>
+                <button type="button" class="btn btn-sm signature-clear-btn" id="wizard-sig-clear">Clear</button>
+              </div>
+            </div>
+            <div class="form-group contract-terms-group">
+              <label class="contract-checkbox-label">
+                <input type="checkbox" id="wizard-terms-check"${wizardTermsAccepted ? ' checked' : ''}>
+                <span>I have read, understood, and agree to all terms and conditions stated above. *</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="wizard-actions wizard-actions-split">
+            <button class="btn wizard-back" id="wizard-back-5">Back</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-5" disabled>Sign &amp; Submit Booking</button>
+          </div>
+        </div>
+        ${renderWizardLiveSummary()}
+      </div>
+    </section>
+  `;
+}
+
+function showWizardStep5(): void {
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep5());
+  wireWizardStep5();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep5(): void {
+  const typedSigEl = document.getElementById('wizard-typed-sig') as HTMLInputElement;
+  const termsEl = document.getElementById('wizard-terms-check') as HTMLInputElement;
+  const canvas = document.getElementById('wizard-sig-canvas') as HTMLCanvasElement;
+  const clearBtn = document.getElementById('wizard-sig-clear');
+  const continueBtn = document.getElementById('wizard-continue-5') as HTMLButtonElement;
+
+  let hasDrawn = !!wizardDrawnSignatureData;
+  let isDrawing = false;
+
+  const ctx = canvas.getContext('2d')!;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1a1a1a';
+
+  // Restore previous signature if navigating back
+  if (wizardDrawnSignatureData) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = wizardDrawnSignatureData;
+  }
+
+  function getCanvasPoint(e: MouseEvent | Touch): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }
+
+  // Mouse events
+  canvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    const pt = getCanvasPoint(e);
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    const pt = getCanvasPoint(e);
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+    hasDrawn = true;
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+    wizardDrawnSignatureData = canvas.toDataURL('image/png');
+    updateContinue5();
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    if (isDrawing) {
+      isDrawing = false;
+      wizardDrawnSignatureData = canvas.toDataURL('image/png');
+      updateContinue5();
+    }
+  });
+
+  // Touch events
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    isDrawing = true;
+    const pt = getCanvasPoint(e.touches[0]);
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const pt = getCanvasPoint(e.touches[0]);
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+    hasDrawn = true;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    isDrawing = false;
+    wizardDrawnSignatureData = canvas.toDataURL('image/png');
+    updateContinue5();
+  });
+
+  // Clear button
+  clearBtn?.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn = false;
+    wizardDrawnSignatureData = '';
+    updateContinue5();
+  });
+
+  function updateContinue5(): void {
+    wizardTypedSignature = typedSigEl.value.trim();
+    wizardTermsAccepted = termsEl.checked;
+    continueBtn.disabled = !(wizardTypedSignature && hasDrawn && wizardTermsAccepted);
+  }
+
+  typedSigEl?.addEventListener('input', updateContinue5);
+  termsEl?.addEventListener('change', updateContinue5);
+  updateContinue5();
+
+  // Navigation
+  document.getElementById('wizard-back-5')?.addEventListener('click', () => {
+    showWizardStep4();
+  });
+
+  document.getElementById('wizard-continue-5')?.addEventListener('click', async () => {
+    if (!wizardSelectedMotoId) return;
+    continueBtn.disabled = true;
+    continueBtn.textContent = 'Submitting...';
+
+    const rpcArgs: BookingRpcArgs = {
+      p_motorcycle_id: wizardSelectedMotoId,
+      p_customer_name: wizardCustomerName,
+      p_customer_email: wizardCustomerEmail || undefined,
+      p_customer_whatsapp: wizardCustomerWhatsapp || undefined,
+      p_start_date: wizardStartDate!,
+      p_end_date: wizardEndDate!,
+      p_pickup_notes: wizardDeliveryNotes || undefined,
+      p_payment_method: wizardPaymentMethod || undefined,
+      p_delivery_date_time: wizardDeliveryDate || undefined,
+      p_delivery_map_link: (wizardDeliveryMap && isValidUrl(wizardDeliveryMap)) ? wizardDeliveryMap : undefined,
+      p_delivery_location_description: wizardDeliveryLocation || undefined,
+      p_typed_signature_name: wizardTypedSignature || undefined,
+      p_drawn_signature_data: wizardDrawnSignatureData || undefined,
+      p_contract_signed_at: new Date().toISOString(),
+      p_contract_text: generateContractText(),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('create_booking_request', rpcArgs) as { data: BookingRpcResult | null; error: { message: string } | null };
+
+    if (error) {
+      continueBtn.disabled = false;
+      continueBtn.innerHTML = 'Sign &amp; Submit Booking';
+      alert(error.message || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    const result = data as BookingRpcResult | undefined;
+    if (!result) {
+      continueBtn.disabled = false;
+      continueBtn.innerHTML = 'Sign &amp; Submit Booking';
+      alert('Something went wrong. Please try again.');
+      return;
+    }
+
+    showConfirmation(result.reservation_code, result.customer_access_secret);
+  });
+}
+
+function showConfirmation(reservationCode: string, accessSecret?: string): void {
+  const existing = document.getElementById('booking-section');
+  if (existing) existing.remove();
+
+  main!.insertAdjacentHTML('beforeend', renderConfirmation(reservationCode, accessSecret));
+  document.getElementById('print-contract-btn')?.addEventListener('click', () => {
+    showPrintableContract();
+  });
+  document.getElementById('another-booking-btn')?.addEventListener('click', () => {
+    const section = document.getElementById('booking-section');
+    if (section) section.remove();
+    showWizard();
+  });
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
 }
 
 function todayStr(): string {
@@ -135,17 +1123,131 @@ function renderBookingForm(preselectedId?: string): string {
   `;
 }
 
-function renderSuccess(reservationCode: string, motoName: string, startDate: string, endDate: string, nights: number): string {
+function renderConfirmation(reservationCode: string, accessSecret?: string): string {
+  const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
+  const motoName = moto ? moto.name : '';
+  const motoImage = moto?.image_url
+    ? `<img src="${moto.image_url}" alt="${motoName}" class="confirmation-moto-img">`
+    : '';
+  const motoMeta = moto ? [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ') : '';
+
+  const start = parseDate(wizardStartDate!);
+  const end = parseDate(wizardEndDate!);
+  const days = calculateNights(start, end);
+  const pricing = calculatePricing(days);
+  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+  const startFmt = start.toLocaleDateString('en-US', fmtOpts);
+  const endFmt = end.toLocaleDateString('en-US', fmtOpts);
+
+  const pm = PAYMENT_METHODS.find(p => p.type === wizardPaymentMethod);
+  const paymentDisplay = pm
+    ? `<span class="payment-type">${pm.type}</span>${pm.handle ? `<span class="payment-handle">${pm.handle}</span>` : ''}`
+    : wizardPaymentMethod;
+
+  let deliveryHtml = '';
+  if (wizardDeliveryDate || wizardDeliveryLocation || wizardDeliveryMap || wizardDeliveryNotes) {
+    deliveryHtml = `
+      ${wizardDeliveryDate ? `<p><strong>Date &amp; Time:</strong> ${wizardDeliveryDate}</p>` : ''}
+      ${wizardDeliveryLocation ? `<p><strong>Location:</strong> ${wizardDeliveryLocation}</p>` : ''}
+      ${wizardDeliveryMap ? `<p><strong>Map:</strong> <a href="${wizardDeliveryMap}" target="_blank" rel="noopener">View on map</a></p>` : ''}
+      ${wizardDeliveryNotes ? `<p><strong>Notes:</strong> ${wizardDeliveryNotes}</p>` : ''}
+    `;
+  } else {
+    deliveryHtml = '<p class="delivery-pending">Delivery details to be arranged</p>';
+  }
+
   return `
     <section class="booking-success" id="booking-section">
-      <h2>Booking Request Submitted!</h2>
-      <div class="reservation-code">${reservationCode}</div>
-      <div class="booking-details">
-        <p><strong>Motorcycle:</strong> ${motoName}</p>
-        <p><strong>Dates:</strong> ${startDate} to ${endDate}</p>
-        <p><strong>Nights:</strong> ${nights}</p>
+      <div class="success-header">
+        <div class="success-check"></div>
+        <h2>Booking Request Submitted!</h2>
+        <p class="success-subtitle">Your reservation is being reviewed</p>
       </div>
-      <p>Save your reservation code. We'll review your request and get back to you.</p>
+
+      <div class="reservation-code">
+        <span class="reservation-code-value">${reservationCode}</span>
+        <p class="reservation-code-hint">Save this code — you'll need it to check your reservation status</p>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>Motorcycle</h3>
+        <div class="confirmation-moto">
+          ${motoImage}
+          <div>
+            <strong>${motoName}</strong>
+            ${motoMeta ? `<p class="confirmation-moto-meta">${motoMeta}</p>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>Rental Dates</h3>
+        <p>${startFmt} &rarr; ${endFmt}</p>
+        <p class="confirmation-detail">${days} day${days !== 1 ? 's' : ''}</p>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>Pricing</h3>
+        <div class="pricing-table">
+          <div class="pricing-row">
+            <span>${pricing.days} day${pricing.days !== 1 ? 's' : ''} &times; $${pricing.dailyRate}/day</span>
+            <span>$${pricing.baseSubtotal.toFixed(2)}</span>
+          </div>
+          ${pricing.discountLabel ? `
+          <div class="pricing-row pricing-discount">
+            <span>${pricing.discountLabel}</span>
+            <span>&minus;$${pricing.discountAmount.toFixed(2)}</span>
+          </div>` : ''}
+          <div class="pricing-row pricing-subtotal">
+            <span>Rental total</span>
+            <span>$${pricing.rentalTotal.toFixed(2)}</span>
+          </div>
+          <div class="pricing-row">
+            <span>Refundable security deposit</span>
+            <span>$${pricing.securityDeposit.toFixed(2)}</span>
+          </div>
+          <div class="pricing-row pricing-total">
+            <span>Total due</span>
+            <span>$${pricing.totalDue.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>Payment Method</h3>
+        <div class="payment-method-display">${paymentDisplay}</div>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>Delivery</h3>
+        <div class="delivery-summary">
+          <p><strong>Status:</strong> <span class="delivery-badge delivery-badge-scheduled">Scheduled</span></p>
+          ${deliveryHtml}
+        </div>
+      </div>
+
+      <div class="confirmation-section">
+        <h3>What's Next</h3>
+        <ol class="next-steps-list">
+          <li>We'll review your request and confirm within 24 hours</li>
+          <li>You'll receive a WhatsApp message with next steps</li>
+          <li>Payment is due before your rental start date</li>
+        </ol>
+      </div>
+
+      ${accessSecret ? `
+      <div class="confirmation-section">
+        <h3>Check Your Reservation</h3>
+        <p>You can check your reservation status anytime:</p>
+        <p><a href="/customer.html?code=${encodeURIComponent(reservationCode)}&secret=${encodeURIComponent(accessSecret)}" class="customer-access-link">/customer.html?code=${reservationCode}&amp;secret=${accessSecret}</a></p>
+        <p class="text-muted">Save this link — it's your access to view your booking details.</p>
+      </div>
+      ` : ''}
+
+      <button class="btn btn-outline" id="print-contract-btn">Print Contract</button>
+
+      <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener" class="btn whatsapp-cta">Questions? Message us on WhatsApp</a>
+
       <button class="btn btn-primary" id="another-booking-btn">Submit Another Booking</button>
     </section>
   `;
@@ -258,7 +1360,7 @@ function wireBookButtons(): void {
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const motoId = btn.dataset.motorcycleId;
-      showBookingForm(motoId);
+      showWizard(motoId);
     });
   });
 }
@@ -362,20 +1464,33 @@ async function handleSubmit(e: Event): Promise<void> {
     return;
   }
 
-  const moto = motorcycles.find(m => m.id === motoId);
-  const motoName = moto ? `${moto.brand} ${moto.model}` : '';
-  const nights = calculateNights(parseDate(startDate), parseDate(endDate));
+  // Populate wizard state from form for confirmation page
+  wizardSelectedMotoId = motoId;
+  wizardStartDate = startDate;
+  wizardEndDate = endDate;
+  wizardCustomerName = customerName;
+  wizardCustomerWhatsapp = customerWhatsapp;
+  wizardCustomerEmail = customerEmail;
 
-  const section = document.getElementById('booking-section');
-  if (section) {
-    section.outerHTML = renderSuccess(result.reservation_code, motoName, startDate, endDate, nights);
-    document.getElementById('another-booking-btn')?.addEventListener('click', () => {
-      showBookingForm();
-    });
-  }
+  showConfirmation(result.reservation_code, result.customer_access_secret);
 }
 
 // --- Init ---
+
+function wireHeroCta(): void {
+  const cta = main!.querySelector('.hero-cta');
+  if (cta) {
+    cta.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = document.getElementById('booking-section');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        showWizard();
+      }
+    });
+  }
+}
 
 async function init(): Promise<void> {
   main!.innerHTML = renderHero() + renderLoading();
@@ -387,12 +1502,14 @@ async function init(): Promise<void> {
 
   if (error) {
     main!.innerHTML = renderHero() + renderFetchError();
+    wireHeroCta();
     return;
   }
 
   motorcycles = data ?? [];
-  main!.innerHTML = renderHero() + renderCards(motorcycles);
+  main!.innerHTML = renderHero() + renderCards(motorcycles) + renderFeaturesStrip() + renderContactSection();
   wireBookButtons();
+  wireHeroCta();
 }
 
 init();
