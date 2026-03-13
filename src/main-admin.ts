@@ -191,15 +191,31 @@ function renderMetricsBar(bookings: BookingWithMoto[]): string {
     ? `<span class="metric-overdue">${overdue} overdue</span>`
     : '';
 
+  // Payment method breakdown for active+completed bookings
+  const payableBookings = bookings.filter(b => ['active', 'completed'].includes(b.status));
+  const methodCounts = new Map<string, number>();
+  for (const b of payableBookings) {
+    const method = b.payment_method || 'Unspecified';
+    methodCounts.set(method, (methodCounts.get(method) || 0) + 1);
+  }
+  const methodBreakdown = Array.from(methodCounts.entries())
+    .map(([method, count]) => `${method}: ${count}`)
+    .join(' · ');
+
   return `
     <div class="metrics-bar">
       <div class="metric-card">
         <div class="metric-value">$${totalEarnings.toFixed(0)}</div>
         <div class="metric-label">Earnings</div>
+        ${methodBreakdown ? `<div class="metric-sub">${methodBreakdown}</div>` : ''}
       </div>
       <div class="metric-card">
         <div class="metric-value">${active.length}</div>
         <div class="metric-label">Active</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">${occupancy}%</div>
+        <div class="metric-label">Occupancy</div>
       </div>
       <div class="metric-card">
         <div class="metric-value">${pending.length}</div>
@@ -480,6 +496,50 @@ function formatDayHeader(dateStr: string): string {
   return formatted;
 }
 
+function renderDeliveryPreview(b: BookingWithMoto): string {
+  const motoName = b.motorcycles
+    ? `${b.motorcycles.brand} ${b.motorcycles.model} (${b.motorcycles.name})`
+    : 'Unknown motorcycle';
+  const nights = b.rental_days || calculateNights(parseDate(b.start_date), parseDate(b.end_date));
+
+  let pricingHtml = '';
+  if (b.rental_total_usd) {
+    pricingHtml = `
+      <p>${nights} days &times; $${(Number(b.base_price_usd || 0) / Math.max(nights, 1)).toFixed(0)}/day = $${Number(b.base_price_usd || 0).toFixed(2)}</p>
+      ${b.discount_usd && Number(b.discount_usd) > 0 ? `<p>Discount: -$${Number(b.discount_usd).toFixed(2)}</p>` : ''}
+      <p>Rental total: <strong>$${Number(b.rental_total_usd).toFixed(2)}</strong></p>
+      <p>Deposit: $${Number(b.security_deposit_usd || 0).toFixed(2)}</p>
+      <p>Total due: <strong>$${Number(b.total_due_usd || 0).toFixed(2)}</strong></p>
+    `;
+  }
+
+  const contractHtml = b.contract_signed_at
+    ? `<p>Signed: ${new Date(b.contract_signed_at).toLocaleString()}${b.typed_signature_name ? ` by ${b.typed_signature_name}` : ''}</p>`
+    : '<p>Not yet signed</p>';
+
+  return `
+    <div class="delivery-preview-panel" id="delivery-preview-${b.id}" hidden>
+      <div class="delivery-preview-content">
+        <h4>Customer Reservation Preview</h4>
+        <div class="detail-section">
+          <p><strong>Customer:</strong> ${b.customer_name}</p>
+          <p><strong>Email:</strong> ${b.customer_email || 'N/A'}</p>
+          <p><strong>WhatsApp:</strong> ${b.customer_whatsapp || 'N/A'}</p>
+        </div>
+        <div class="detail-section">
+          <p><strong>Motorcycle:</strong> ${motoName}</p>
+          <p><strong>Dates:</strong> ${b.start_date} &rarr; ${b.end_date} (${nights} night${nights !== 1 ? 's' : ''})</p>
+        </div>
+        ${pricingHtml ? `<div class="detail-section"><h4>Pricing</h4>${pricingHtml}</div>` : ''}
+        <div class="detail-section">
+          <h4>Contract</h4>
+          ${contractHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderDeliveryCard(b: BookingWithMoto): string {
   const motoName = b.motorcycles
     ? `${b.motorcycles.brand} ${b.motorcycles.model}`
@@ -510,11 +570,13 @@ function renderDeliveryCard(b: BookingWithMoto): string {
         </p>
       </div>
       <div class="delivery-card-actions">
+        <button class="btn btn-sm delivery-action-btn delivery-preview-btn" data-preview-id="delivery-preview-${b.id}">Preview Reservation</button>
         ${b.customer_whatsapp ? `<button class="btn btn-sm delivery-action-btn" data-copy-whatsapp="${escapeAttr(b.customer_whatsapp)}" title="Copy WhatsApp">Copy WhatsApp</button>` : ''}
         ${b.delivery_map_link ? `<a href="${b.delivery_map_link}" target="_blank" rel="noopener" class="btn btn-sm delivery-action-btn">Open Map</a>` : ''}
         ${dStatus === 'scheduled' ? `<button class="btn btn-sm btn-primary delivery-action-btn" data-mark-delivered="${b.id}">Mark Delivered</button>` : ''}
         ${dStatus !== 'issue_reported' ? `<button class="btn btn-sm btn-danger delivery-action-btn" data-mark-issue="${b.id}">Mark Issue</button>` : ''}
       </div>
+      ${renderDeliveryPreview(b)}
     </div>
   `;
 }
@@ -837,6 +899,18 @@ function wireDeliveryBoard(): void {
   app!.querySelectorAll<HTMLButtonElement>('[data-mark-issue]').forEach(btn => {
     btn.addEventListener('click', () => {
       updateDeliveryStatus(btn.dataset.markIssue!, 'issue_reported');
+    });
+  });
+
+  // Preview Reservation toggle
+  app!.querySelectorAll<HTMLButtonElement>('.delivery-preview-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const previewId = btn.dataset.previewId!;
+      const panel = document.getElementById(previewId);
+      if (!panel) return;
+      const isHidden = panel.hidden;
+      panel.hidden = !isHidden;
+      btn.textContent = isHidden ? 'Hide Preview' : 'Preview Reservation';
     });
   });
 
