@@ -127,6 +127,22 @@ let wizardDeliveryNotes = '';
 function isValidUrl(str: string): boolean {
   try { new URL(str); return true; } catch { return false; }
 }
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone(phone: string): boolean {
+  const digitsOnly = phone.replace(/\D/g, '');
+  return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+}
+
+// 30-minute delivery time slots from 07:00 to 21:00
+const TIME_SLOTS: string[] = [];
+for (let h = 7; h <= 21; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 21) TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
+}
 let wizardTypedSignature = '';
 let wizardDrawnSignatureData = '';
 let wizardTermsAccepted = false;
@@ -659,10 +675,12 @@ function renderWizardStep4(): string {
             <div class="form-group">
               <label for="wizard-whatsapp">WhatsApp Number *</label>
               <input type="tel" id="wizard-whatsapp" value="${wizardCustomerWhatsapp}" required>
+              <span class="field-error" id="wizard-phone-error"></span>
             </div>
             <div class="form-group">
               <label for="wizard-email">Email (optional)</label>
               <input type="email" id="wizard-email" value="${wizardCustomerEmail}">
+              <span class="field-error" id="wizard-email-error"></span>
             </div>
             <div class="form-group">
               <label for="wizard-payment">Payment Method *</label>
@@ -678,7 +696,10 @@ function renderWizardStep4(): string {
           <div class="wizard-details-form">
             <div class="form-group">
               <label for="wizard-delivery-time">Delivery Time</label>
-              <input type="time" id="wizard-delivery-time" value="${wizardDeliveryTime}">
+              <select id="wizard-delivery-time">
+                <option value="">Select delivery time</option>
+                ${TIME_SLOTS.map(t => `<option value="${t}"${t === wizardDeliveryTime ? ' selected' : ''}>${t}</option>`).join('')}
+              </select>
             </div>
             <div class="form-group">
               <label for="wizard-delivery-location">Where exactly? (hotel name, landmark, address)</label>
@@ -720,15 +741,52 @@ function wireWizardStep4(): void {
   const whatsappEl = document.getElementById('wizard-whatsapp') as HTMLInputElement;
   const emailEl = document.getElementById('wizard-email') as HTMLInputElement;
   const paymentEl = document.getElementById('wizard-payment') as HTMLSelectElement;
-  const deliveryTimeEl = document.getElementById('wizard-delivery-time') as HTMLInputElement;
+  const deliveryTimeEl = document.getElementById('wizard-delivery-time') as HTMLSelectElement;
   const deliveryLocationEl = document.getElementById('wizard-delivery-location') as HTMLInputElement;
   const deliveryMapEl = document.getElementById('wizard-delivery-map') as HTMLInputElement;
   const deliveryMapError = document.getElementById('wizard-delivery-map-error')!;
   const deliveryNotesEl = document.getElementById('wizard-delivery-notes') as HTMLTextAreaElement;
+  const phoneError = document.getElementById('wizard-phone-error')!;
+  const emailError = document.getElementById('wizard-email-error')!;
+
+  function validateFields(): boolean {
+    let valid = true;
+
+    // Phone validation
+    if (whatsappEl.value.trim() && !isValidPhone(whatsappEl.value.trim())) {
+      phoneError.textContent = 'Please enter a valid phone number';
+      whatsappEl.classList.add('field-invalid');
+      valid = false;
+    } else {
+      phoneError.textContent = '';
+      whatsappEl.classList.remove('field-invalid');
+    }
+
+    // Email validation (optional field, but validate if filled)
+    if (emailEl.value.trim() && !isValidEmail(emailEl.value.trim())) {
+      emailError.textContent = 'Please enter a valid email address';
+      emailEl.classList.add('field-invalid');
+      valid = false;
+    } else {
+      emailError.textContent = '';
+      emailEl.classList.remove('field-invalid');
+    }
+
+    // Map URL validation
+    if (deliveryMapEl.value.trim() && !isValidUrl(deliveryMapEl.value.trim())) {
+      deliveryMapError.textContent = 'Please enter a valid URL';
+      deliveryMapEl.classList.add('field-invalid');
+      valid = false;
+    } else {
+      deliveryMapError.textContent = '';
+      deliveryMapEl.classList.remove('field-invalid');
+    }
+
+    return valid;
+  }
 
   const updateContinue = () => {
     const btn = document.getElementById('wizard-continue-4') as HTMLButtonElement;
-    btn.disabled = !(nameEl.value.trim() && whatsappEl.value.trim() && paymentEl.value);
     wizardCustomerName = nameEl.value.trim();
     wizardCustomerWhatsapp = whatsappEl.value.trim();
     wizardCustomerEmail = emailEl.value.trim();
@@ -738,15 +796,15 @@ function wireWizardStep4(): void {
     wizardDeliveryMap = deliveryMapEl.value.trim();
     wizardDeliveryNotes = deliveryNotesEl.value.trim();
 
-    // Inline URL validation for map link
-    if (wizardDeliveryMap && !isValidUrl(wizardDeliveryMap)) {
-      deliveryMapError.textContent = 'Please enter a valid URL';
-      deliveryMapEl.classList.add('field-invalid');
-    } else {
-      deliveryMapError.textContent = '';
-      deliveryMapEl.classList.remove('field-invalid');
-    }
+    const requiredFilled = !!(nameEl.value.trim() && whatsappEl.value.trim() && paymentEl.value);
+    const fieldsValid = validateFields();
+    btn.disabled = !(requiredFilled && fieldsValid);
   };
+
+  // Validate on blur
+  whatsappEl?.addEventListener('blur', validateFields);
+  emailEl?.addEventListener('blur', validateFields);
+  deliveryMapEl?.addEventListener('blur', validateFields);
 
   nameEl?.addEventListener('input', updateContinue);
   whatsappEl?.addEventListener('input', updateContinue);
@@ -765,6 +823,7 @@ function wireWizardStep4(): void {
   });
 
   document.getElementById('wizard-continue-4')?.addEventListener('click', () => {
+    if (!validateFields()) return;
     showWizardStep5();
   });
 }
