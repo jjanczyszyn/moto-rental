@@ -86,7 +86,6 @@ function renderCard(moto: Motorcycle): string {
         <h3>${moto.name}</h3>
         <p class="motorcycle-card-meta">${meta}</p>
         <p class="motorcycle-card-rate">$${rate}/day</p>
-        <button class="btn btn-primary book-btn" data-motorcycle-id="${moto.id}">Book this moto</button>
       </div>
     </div>
   `;
@@ -106,8 +105,8 @@ function renderCards(motos: Motorcycle[]): string {
 // --- Wizard ---
 
 const WIZARD_STEPS = [
-  { num: 1, label: 'Choose' },
-  { num: 2, label: 'Dates' },
+  { num: 1, label: 'Dates' },
+  { num: 2, label: 'Choose' },
   { num: 3, label: 'Pricing' },
   { num: 4, label: 'Details' },
   { num: 5, label: 'Contract' },
@@ -234,34 +233,25 @@ function renderWizardLiveSummary(): string {
   `;
 }
 
-function renderWizardStep1(preselectedId?: string): string {
-  const cards = motorcycles.map(moto => {
-    const rate = Number(moto.daily_rate).toFixed(2);
-    const selected = moto.id === preselectedId;
-    const image = moto.image_url
-      ? `<img src="${moto.image_url}" alt="${moto.name}" class="wizard-moto-image">`
-      : `<div class="wizard-moto-image wizard-moto-placeholder">${moto.name}</div>`;
-    const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
-    return `
-      <div class="wizard-moto-card${selected ? ' selected' : ''}" data-moto-id="${moto.id}">
-        ${image}
-        <div class="wizard-moto-info">
-          <strong>${moto.name}</strong>
-          <span class="wizard-moto-meta">${meta}</span>
-          <span class="wizard-moto-rate">$${rate}/day</span>
-        </div>
-      </div>`;
-  }).join('');
-
+function renderWizardStep1(): string {
   return `
     <section class="wizard-container" id="booking-section">
       ${renderWizardStepIndicators(0)}
       <div class="wizard-layout-with-summary">
         <div class="wizard-main-content">
-          <h2>Choose your motorcycle</h2>
-          <div class="wizard-moto-grid">${cards}</div>
+          <h2>Choose your dates</h2>
+          <p class="wizard-date-instruction">Tap your start date, then tap your end date</p>
+          <div class="wizard-calendar" id="wizard-calendar">
+            ${renderCalendarMonth(calendarViewYear, calendarViewMonth)}
+          </div>
+          <div class="cal-legend">
+            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-available"></span> Available</span>
+            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-selected"></span> Your dates</span>
+          </div>
+          <div id="wizard-date-error" class="form-error" hidden></div>
+          <div id="wizard-date-summary" class="wizard-date-summary" hidden></div>
           <div class="wizard-actions">
-            <button class="btn btn-primary wizard-continue" id="wizard-continue-btn"${preselectedId ? '' : ' disabled'}>Continue to Dates</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-1" disabled>Continue</button>
           </div>
         </div>
         ${renderWizardLiveSummary()}
@@ -270,37 +260,65 @@ function renderWizardStep1(preselectedId?: string): string {
   `;
 }
 
-function showWizard(preselectedId?: string): void {
-  wizardSelectedMotoId = preselectedId ?? null;
+function showWizard(): void {
   const existing = document.getElementById('booking-section');
   if (existing) existing.remove();
 
-  main!.insertAdjacentHTML('beforeend', renderWizardStep1(preselectedId));
+  // Reset calendar view to current month or previously selected start date
+  if (wizardStartDate) {
+    const d = parseDate(wizardStartDate);
+    calendarViewMonth = d.getMonth();
+    calendarViewYear = d.getFullYear();
+  } else {
+    calendarViewMonth = new Date().getMonth();
+    calendarViewYear = new Date().getFullYear();
+  }
+
+  // Step 1 (Dates) does not need per-motorcycle booked dates — just gray out past
+  bookedDateRanges = [];
+
+  main!.insertAdjacentHTML('beforeend', renderWizardStep1());
   wireWizardStep1();
+  updateStep1Summary();
   document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
 }
 
+function updateStep1Summary(): void {
+  const summaryEl = document.getElementById('wizard-date-summary');
+  const errorEl = document.getElementById('wizard-date-error');
+  const continueBtn = document.getElementById('wizard-continue-1') as HTMLButtonElement | null;
+  if (!summaryEl || !errorEl || !continueBtn) return;
+
+  summaryEl.hidden = true;
+  errorEl.hidden = true;
+  continueBtn.disabled = true;
+
+  if (!wizardStartDate || !wizardEndDate) return;
+
+  const start = parseDate(wizardStartDate);
+  const end = parseDate(wizardEndDate);
+  const days = calculateNights(start, end);
+
+  if (days <= 0) {
+    errorEl.textContent = 'Rental must be at least 1 day.';
+    errorEl.hidden = false;
+    return;
+  }
+
+  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+  const startFmt = start.toLocaleDateString('en-US', fmtOpts);
+  const endFmt = end.toLocaleDateString('en-US', fmtOpts);
+  const pricing = calculatePricing(days);
+  summaryEl.innerHTML = `${days} day${days !== 1 ? 's' : ''} — ${startFmt} to ${endFmt}<br><strong>$${pricing.rentalTotal.toFixed(2)}</strong>${pricing.discountLabel ? ` <span class="summary-discount">(${pricing.discountLabel})</span>` : ''}`;
+  summaryEl.hidden = false;
+  continueBtn.disabled = false;
+}
+
 function wireWizardStep1(): void {
-  const cards = main!.querySelectorAll<HTMLDivElement>('.wizard-moto-card');
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      const motoId = card.dataset.motoId;
-      if (!motoId) return;
-      wizardSelectedMotoId = motoId;
+  wireCalendarEvents();
 
-      // Update selection visuals
-      cards.forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-
-      // Enable continue button
-      const continueBtn = document.getElementById('wizard-continue-btn') as HTMLButtonElement | null;
-      if (continueBtn) continueBtn.disabled = false;
-    });
-  });
-
-  const continueBtn = document.getElementById('wizard-continue-btn');
-  continueBtn?.addEventListener('click', () => {
-    if (wizardSelectedMotoId) {
+  document.getElementById('wizard-continue-1')?.addEventListener('click', () => {
+    if (wizardStartDate && wizardEndDate) {
       showWizardStep2();
     }
   });
@@ -384,27 +402,55 @@ function renderCalendarMonth(year: number, month: number): string {
   `;
 }
 
+let availableMotorcycles: Motorcycle[] = [];
+
 function renderWizardStep2(): string {
+  if (availableMotorcycles.length === 0) {
+    return `
+      <section class="wizard-container" id="booking-section">
+        ${renderWizardStepIndicators(1)}
+        <div class="wizard-layout-with-summary">
+          <div class="wizard-main-content">
+            <h2>Choose your motorcycle</h2>
+            <div class="wizard-no-availability">
+              <p>No motorcycles available for these dates. Try different dates.</p>
+              <button class="btn btn-primary" id="wizard-change-dates">Change Dates</button>
+            </div>
+          </div>
+          ${renderWizardLiveSummary()}
+        </div>
+      </section>
+    `;
+  }
+
+  const cards = availableMotorcycles.map(moto => {
+    const rate = Number(moto.daily_rate).toFixed(2);
+    const selected = moto.id === wizardSelectedMotoId;
+    const image = moto.image_url
+      ? `<img src="${moto.image_url}" alt="${moto.name}" class="wizard-moto-image">`
+      : `<div class="wizard-moto-image wizard-moto-placeholder">${moto.name}</div>`;
+    const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
+    return `
+      <div class="wizard-moto-card${selected ? ' selected' : ''}" data-moto-id="${moto.id}">
+        ${image}
+        <div class="wizard-moto-info">
+          <strong>${moto.name}</strong>
+          <span class="wizard-moto-meta">${meta}</span>
+          <span class="wizard-moto-rate">$${rate}/day</span>
+        </div>
+      </div>`;
+  }).join('');
+
   return `
     <section class="wizard-container" id="booking-section">
       ${renderWizardStepIndicators(1)}
       <div class="wizard-layout-with-summary">
         <div class="wizard-main-content">
-          <h2>Choose your dates</h2>
-          <p class="wizard-date-instruction">Tap your start date, then tap your end date</p>
-          <div class="wizard-calendar" id="wizard-calendar">
-            ${renderCalendarMonth(calendarViewMonth >= 0 ? calendarViewYear : new Date().getFullYear(), calendarViewMonth >= 0 ? calendarViewMonth : new Date().getMonth())}
-          </div>
-          <div class="cal-legend">
-            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-available"></span> Available</span>
-            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-booked"></span> Booked</span>
-            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-selected"></span> Your dates</span>
-          </div>
-          <div id="wizard-date-error" class="form-error" hidden></div>
-          <div id="wizard-date-summary" class="wizard-date-summary" hidden></div>
+          <h2>Choose your motorcycle</h2>
+          <div class="wizard-moto-grid">${cards}</div>
           <div class="wizard-actions wizard-actions-split">
             <button class="btn wizard-back" id="wizard-back-2">Back</button>
-            <button class="btn btn-primary wizard-continue" id="wizard-continue-2" disabled>Continue</button>
+            <button class="btn btn-primary wizard-continue" id="wizard-continue-2"${wizardSelectedMotoId ? '' : ' disabled'}>Continue</button>
           </div>
         </div>
         ${renderWizardLiveSummary()}
@@ -434,42 +480,7 @@ function hasBookedDateInRange(startStr: string, endStr: string): boolean {
 }
 
 function updateStep2Summary(): void {
-  const summaryEl = document.getElementById('wizard-date-summary');
-  const errorEl = document.getElementById('wizard-date-error');
-  const continueBtn = document.getElementById('wizard-continue-2') as HTMLButtonElement | null;
-  if (!summaryEl || !errorEl || !continueBtn) return;
-
-  summaryEl.hidden = true;
-  errorEl.hidden = true;
-  continueBtn.disabled = true;
-
-  if (!wizardStartDate || !wizardEndDate) return;
-
-  const start = parseDate(wizardStartDate);
-  const end = parseDate(wizardEndDate);
-  const days = calculateNights(start, end);
-
-  if (days <= 0) {
-    errorEl.textContent = 'Rental must be at least 1 day.';
-    errorEl.hidden = false;
-    return;
-  }
-
-  // Check if range contains booked dates
-  if (hasBookedDateInRange(wizardStartDate, wizardEndDate)) {
-    errorEl.textContent = 'Your selected range includes booked dates. Please choose different dates.';
-    errorEl.hidden = false;
-    wizardEndDate = null;
-    refreshCalendar();
-    return;
-  }
-
-  const fmtOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-  const startFmt = start.toLocaleDateString('en-US', fmtOpts);
-  const endFmt = end.toLocaleDateString('en-US', fmtOpts);
-  summaryEl.textContent = `${days} day${days !== 1 ? 's' : ''} — ${startFmt} to ${endFmt}`;
-  summaryEl.hidden = false;
-  continueBtn.disabled = false;
+  // No-op — date summary is now handled by updateStep1Summary in Step 1 (Dates)
 }
 
 function wireCalendarEvents(): void {
@@ -495,7 +506,11 @@ function wireCalendarEvents(): void {
         // Second click: set end
         wizardEndDate = dateStr;
       }
+      // Clear motorcycle selection when dates change (force re-selection)
+      wizardSelectedMotoId = null;
       refreshCalendar();
+      // Update whichever step summary is active
+      updateStep1Summary();
       updateStep2Summary();
     });
   });
@@ -505,27 +520,51 @@ async function showWizardStep2(): Promise<void> {
   const existing = document.getElementById('booking-section');
   if (existing) existing.remove();
 
-  // Set calendar to current month or start date month
-  if (wizardStartDate) {
-    const d = parseDate(wizardStartDate);
-    calendarViewMonth = d.getMonth();
-    calendarViewYear = d.getFullYear();
-  } else {
-    calendarViewMonth = new Date().getMonth();
-    calendarViewYear = new Date().getFullYear();
-  }
+  // Query for motorcycles booked during selected date range
+  availableMotorcycles = motorcycles;
+  if (wizardStartDate && wizardEndDate) {
+    const { data: bookedRows } = await supabase
+      .from('bookings')
+      .select('motorcycle_id')
+      .in('status', ['approved', 'active'])
+      .lte('start_date', wizardEndDate)
+      .gte('end_date', wizardStartDate);
 
-  // Fetch booked dates for the selected motorcycle
-  if (wizardSelectedMotoId) {
-    await fetchBookedDates(wizardSelectedMotoId);
+    if (bookedRows) {
+      const bookedIds = new Set(bookedRows.map(r => r.motorcycle_id));
+      availableMotorcycles = motorcycles.filter(m => !bookedIds.has(m.id));
+    }
   }
 
   main!.insertAdjacentHTML('beforeend', renderWizardStep2());
-  wireCalendarEvents();
-  updateStep2Summary();
+  wireWizardStep2();
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
+}
+
+function wireWizardStep2(): void {
+  // "Change Dates" button (shown when no availability)
+  document.getElementById('wizard-change-dates')?.addEventListener('click', () => {
+    showWizard();
+  });
+
+  // Motorcycle card selection
+  const cards = main!.querySelectorAll<HTMLDivElement>('.wizard-moto-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const motoId = card.dataset.motoId;
+      if (!motoId) return;
+      wizardSelectedMotoId = motoId;
+
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      const continueBtn = document.getElementById('wizard-continue-2') as HTMLButtonElement | null;
+      if (continueBtn) continueBtn.disabled = false;
+    });
+  });
 
   document.getElementById('wizard-back-2')?.addEventListener('click', () => {
-    showWizard(wizardSelectedMotoId ?? undefined);
+    showWizard();
   });
 
   document.getElementById('wizard-continue-2')?.addEventListener('click', () => {
@@ -533,8 +572,6 @@ async function showWizardStep2(): Promise<void> {
       showWizardStep3();
     }
   });
-
-  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
 }
 
 function renderWizardStep3(): string {
@@ -1452,13 +1489,7 @@ function setSubmitLoading(loading: boolean): void {
 // --- Event wiring ---
 
 function wireBookButtons(): void {
-  const buttons = main!.querySelectorAll<HTMLButtonElement>('.book-btn');
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const motoId = btn.dataset.motorcycleId;
-      showWizard(motoId);
-    });
-  });
+  // Landing page cards are now showcase-only — no book buttons to wire
 }
 
 function showBookingForm(preselectedId?: string): void {
