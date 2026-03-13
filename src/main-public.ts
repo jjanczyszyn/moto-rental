@@ -9,18 +9,18 @@ type Motorcycle = Database['public']['Tables']['motorcycles']['Row'];
 type BookingRpcArgs = {
   p_motorcycle_id: string;
   p_customer_name: string;
-  p_customer_email?: string;
-  p_customer_whatsapp?: string;
+  p_customer_email: string | null;
+  p_customer_whatsapp: string | null;
   p_start_date: string;
   p_end_date: string;
-  p_payment_method?: string;
-  p_delivery_date_time?: string;
-  p_delivery_map_link?: string;
-  p_delivery_location_description?: string;
-  p_typed_signature_name?: string;
-  p_drawn_signature_data?: string;
-  p_contract_signed_at?: string;
-  p_contract_text?: string;
+  p_payment_method: string | null;
+  p_delivery_date_time: string | null;
+  p_delivery_map_link: string | null;
+  p_delivery_location_description: string | null;
+  p_typed_signature_name: string | null;
+  p_drawn_signature_data: string | null;
+  p_contract_signed_at: string | null;
+  p_contract_text: string | null;
 };
 type BookingRpcResult = { reservation_code: string; booking_id: string; customer_access_secret: string };
 
@@ -1101,16 +1101,16 @@ function wireWizardStep5(): void {
     const rpcArgs: BookingRpcArgs = {
       p_motorcycle_id: wizardSelectedMotoId,
       p_customer_name: wizardCustomerName,
-      p_customer_email: wizardCustomerEmail || undefined,
-      p_customer_whatsapp: wizardCustomerWhatsapp || undefined,
+      p_customer_email: wizardCustomerEmail || null,
+      p_customer_whatsapp: wizardCustomerWhatsapp || null,
       p_start_date: wizardStartDate!,
       p_end_date: wizardEndDate!,
-      p_payment_method: wizardPaymentMethod || undefined,
-      p_delivery_date_time: deliveryDateTime,
-      p_delivery_map_link: (wizardDeliveryMap && isValidUrl(wizardDeliveryMap)) ? wizardDeliveryMap : undefined,
-      p_delivery_location_description: locationDesc,
-      p_typed_signature_name: wizardTypedSignature || undefined,
-      p_drawn_signature_data: wizardDrawnSignatureData || undefined,
+      p_payment_method: wizardPaymentMethod || null,
+      p_delivery_date_time: deliveryDateTime ?? null,
+      p_delivery_map_link: (wizardDeliveryMap && isValidUrl(wizardDeliveryMap)) ? wizardDeliveryMap : null,
+      p_delivery_location_description: locationDesc ?? null,
+      p_typed_signature_name: wizardTypedSignature || null,
+      p_drawn_signature_data: wizardDrawnSignatureData || null,
       p_contract_signed_at: new Date().toISOString(),
       p_contract_text: generateContractText(),
     };
@@ -1519,10 +1519,18 @@ async function handleSubmit(e: Event): Promise<void> {
   const rpcArgs: BookingRpcArgs = {
     p_motorcycle_id: motoId,
     p_customer_name: customerName,
-    p_customer_email: customerEmail || '',
-    p_customer_whatsapp: customerWhatsapp || '',
+    p_customer_email: customerEmail || null,
+    p_customer_whatsapp: customerWhatsapp || null,
     p_start_date: startDate,
     p_end_date: endDate,
+    p_payment_method: null,
+    p_delivery_date_time: null,
+    p_delivery_map_link: null,
+    p_delivery_location_description: null,
+    p_typed_signature_name: null,
+    p_drawn_signature_data: null,
+    p_contract_signed_at: null,
+    p_contract_text: null,
   };
 
   // Type assertion: placeholder database.types.ts doesn't fully satisfy
