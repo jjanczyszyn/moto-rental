@@ -24,7 +24,7 @@ export const PAYMENT_METHODS = [
 
 export const UNIVERSAL_INCLUSIONS = [
   'Delivery included',
-  'Surf racks included',
+  'Surf rack included',
   '2 helmets included',
 ] as const;
 
