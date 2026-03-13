@@ -1,0 +1,165 @@
+-- =============================================================================
+-- Moto Rental — Database Schema, RLS, RPC, Grants, Seed Data
+-- =============================================================================
+-- Template: {MANAGER_EMAIL} is replaced by render-migration.mjs before push.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1. Tables
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE public.motorcycles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug text UNIQUE NOT NULL,
+  name text NOT NULL,
+  brand text NOT NULL,
+  model text NOT NULL,
+  year integer,
+  daily_rate numeric(10,2) NOT NULL,
+  description text,
+  image_url text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.bookings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reservation_code text UNIQUE NOT NULL,
+  motorcycle_id uuid NOT NULL REFERENCES public.motorcycles(id) ON DELETE RESTRICT,
+  status text NOT NULL CHECK (status IN ('pending','approved','active','completed','cancelled','rejected')) DEFAULT 'pending',
+  customer_name text NOT NULL,
+  customer_email text,
+  customer_whatsapp text,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  pickup_notes text,
+  dropoff_notes text,
+  manager_notes text,
+  total_quote numeric(10,2),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- 2. Enable RLS
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE public.motorcycles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------------------------
+-- 3. RLS Policies
+-- ---------------------------------------------------------------------------
+
+-- motorcycles: public can view active only
+CREATE POLICY "Public can view active motorcycles"
+  ON public.motorcycles FOR SELECT
+  USING (is_active = true);
+
+-- motorcycles: manager full access
+CREATE POLICY "Manager full access to motorcycles"
+  ON public.motorcycles FOR ALL
+  USING (auth.jwt() ->> 'email' = '{MANAGER_EMAIL}')
+  WITH CHECK (auth.jwt() ->> 'email' = '{MANAGER_EMAIL}');
+
+-- bookings: NO public access (must use RPC)
+
+-- bookings: manager can view all
+CREATE POLICY "Manager can view all bookings"
+  ON public.bookings FOR SELECT
+  USING (auth.jwt() ->> 'email' = '{MANAGER_EMAIL}');
+
+-- bookings: manager can update
+CREATE POLICY "Manager can update bookings"
+  ON public.bookings FOR UPDATE
+  USING (auth.jwt() ->> 'email' = '{MANAGER_EMAIL}')
+  WITH CHECK (auth.jwt() ->> 'email' = '{MANAGER_EMAIL}');
+
+-- ---------------------------------------------------------------------------
+-- 4. RPC: create_booking_request (SECURITY DEFINER)
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.create_booking_request(
+  p_motorcycle_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_whatsapp text,
+  p_start_date date,
+  p_end_date date,
+  p_pickup_notes text DEFAULT NULL,
+  p_dropoff_notes text DEFAULT NULL
+)
+RETURNS TABLE (reservation_code text, booking_id uuid)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_reservation_code text;
+  v_booking_id uuid;
+BEGIN
+  -- 1. Date sanity
+  IF p_start_date > p_end_date THEN
+    RAISE EXCEPTION 'Start date must be on or before end date';
+  END IF;
+
+  -- 2. Motorcycle exists and is active
+  IF NOT EXISTS (
+    SELECT 1 FROM public.motorcycles
+    WHERE id = p_motorcycle_id AND is_active = true
+  ) THEN
+    RAISE EXCEPTION 'Motorcycle not found or not available';
+  END IF;
+
+  -- 3. No date overlap with approved/active bookings
+  IF EXISTS (
+    SELECT 1 FROM public.bookings
+    WHERE motorcycle_id = p_motorcycle_id
+      AND status IN ('approved', 'active')
+      AND start_date < p_end_date
+      AND end_date > p_start_date
+  ) THEN
+    RAISE EXCEPTION 'Motorcycle not available for selected dates';
+  END IF;
+
+  -- 4. Generate reservation code
+  v_reservation_code := upper(substr(gen_random_uuid()::text, 1, 8));
+
+  -- 5. Insert booking
+  INSERT INTO public.bookings (
+    reservation_code, motorcycle_id, status,
+    customer_name, customer_email, customer_whatsapp,
+    start_date, end_date, pickup_notes, dropoff_notes
+  ) VALUES (
+    v_reservation_code, p_motorcycle_id, 'pending',
+    p_customer_name, p_customer_email, p_customer_whatsapp,
+    p_start_date, p_end_date, p_pickup_notes, p_dropoff_notes
+  )
+  RETURNING id INTO v_booking_id;
+
+  -- 6. Return
+  RETURN QUERY SELECT v_reservation_code, v_booking_id;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 5. Grants
+-- ---------------------------------------------------------------------------
+
+GRANT EXECUTE ON FUNCTION public.create_booking_request TO anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 6. Seed Data (3 motorcycles)
+-- ---------------------------------------------------------------------------
+
+INSERT INTO public.motorcycles (slug, name, brand, model, year, daily_rate, description, image_url, is_active)
+VALUES
+  ('honda-crf-300l', 'CRF 300L', 'Honda', 'CRF 300L', 2024, 45.00,
+   'Lightweight dual-sport perfect for exploring mountain roads and trails.',
+   NULL, true),
+  ('yamaha-mt-07', 'MT-07', 'Yamaha', 'MT-07', 2023, 65.00,
+   'Nimble naked bike with smooth twin-cylinder engine. Great for city and canyon rides.',
+   NULL, true),
+  ('kawasaki-versys-650', 'Versys 650', 'Kawasaki', 'Versys 650', 2023, 55.00,
+   'Versatile adventure-touring bike comfortable for all-day rides.',
+   NULL, true);

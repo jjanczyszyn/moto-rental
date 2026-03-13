@@ -1,0 +1,12 @@
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/auth-callback.html",
+  "https://babylon57.github.io/moto-rental/auth-callback.html"
+]
+
+[auth.external.google]
+enabled = false
+client_id = "placeholder"
+secret = "placeholder"
