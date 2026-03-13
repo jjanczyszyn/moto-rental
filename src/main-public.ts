@@ -13,7 +13,6 @@ type BookingRpcArgs = {
   p_customer_whatsapp?: string;
   p_start_date: string;
   p_end_date: string;
-  p_pickup_notes?: string;
   p_payment_method?: string;
   p_delivery_date_time?: string;
   p_delivery_map_link?: string;
@@ -121,7 +120,7 @@ let wizardCustomerName = '';
 let wizardCustomerWhatsapp = '';
 let wizardCustomerEmail = '';
 let wizardPaymentMethod = '';
-let wizardDeliveryDate = '';
+let wizardDeliveryTime = '';
 let wizardDeliveryMap = '';
 let wizardDeliveryLocation = '';
 let wizardDeliveryNotes = '';
@@ -203,11 +202,13 @@ function renderWizardLiveSummary(): string {
     `);
   }
 
-  if (wizardDeliveryDate || wizardDeliveryLocation || wizardDeliveryMap) {
+  if (wizardDeliveryTime || wizardDeliveryLocation || wizardDeliveryMap) {
+    const deliveryDateStr = wizardStartDate ? parseDate(wizardStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    const timeStr = wizardDeliveryTime || '';
     sections.push(`
       <div class="summary-item summary-delivery">
         <div class="summary-label">Delivery</div>
-        ${wizardDeliveryDate ? `<div class="summary-value">${wizardDeliveryDate}</div>` : ''}
+        ${timeStr ? `<div class="summary-value">${deliveryDateStr} at ${timeStr}</div>` : ''}
         ${wizardDeliveryLocation ? `<div class="summary-detail">${wizardDeliveryLocation}</div>` : ''}
         ${wizardDeliveryMap && !wizardDeliveryLocation ? `<div class="summary-detail">Location provided</div>` : ''}
       </div>
@@ -305,32 +306,102 @@ function wireWizardStep1(): void {
   });
 }
 
-function renderWizardStep2(): string {
-  const today = todayStr();
-  const startVal = wizardStartDate ?? '';
-  const endMin = wizardStartDate ?? today;
-  const endVal = wizardEndDate ?? '';
+// --- Calendar date range picker ---
 
+let calendarViewMonth: number = new Date().getMonth();
+let calendarViewYear: number = new Date().getFullYear();
+let bookedDateRanges: { start: string; end: string }[] = [];
+
+async function fetchBookedDates(motorcycleId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('start_date, end_date')
+    .eq('motorcycle_id', motorcycleId)
+    .in('status', ['approved', 'active', 'pending']);
+
+  if (!error && data) {
+    bookedDateRanges = data.map(b => ({ start: b.start_date, end: b.end_date }));
+  } else {
+    bookedDateRanges = [];
+  }
+}
+
+function isDateBooked(dateStr: string): boolean {
+  return bookedDateRanges.some(r => dateStr >= r.start && dateStr < r.end);
+}
+
+function isDateInPast(dateStr: string): boolean {
+  return dateStr < todayStr();
+}
+
+function dateToStr(y: number, m: number, d: number): string {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function renderCalendarMonth(year: number, month: number): string {
+  const monthName = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = todayStr();
+
+  const dayHeaders = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+    .map(d => `<div class="cal-header-cell">${d}</div>`).join('');
+
+  let cells = '';
+  for (let i = 0; i < firstDay; i++) {
+    cells += '<div class="cal-cell cal-empty"></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = dateToStr(year, month, d);
+    const booked = isDateBooked(ds);
+    const past = ds < today;
+    const isStart = ds === wizardStartDate;
+    const isEnd = ds === wizardEndDate;
+    const inRange = wizardStartDate && wizardEndDate && ds > wizardStartDate && ds < wizardEndDate;
+    const disabled = booked || past;
+
+    let cls = 'cal-cell cal-day';
+    if (disabled) cls += ' cal-disabled';
+    if (booked) cls += ' cal-booked';
+    if (isStart) cls += ' cal-range-start';
+    if (isEnd) cls += ' cal-range-end';
+    if (inRange) cls += ' cal-in-range';
+    if (ds === today) cls += ' cal-today';
+
+    cells += `<div class="${cls}" data-date="${ds}"${disabled ? '' : ''}>${d}</div>`;
+  }
+
+  return `
+    <div class="cal-nav">
+      <button type="button" class="btn btn-sm cal-prev" id="cal-prev">&lsaquo;</button>
+      <span class="cal-month-label">${monthName}</span>
+      <button type="button" class="btn btn-sm cal-next" id="cal-next">&rsaquo;</button>
+    </div>
+    <div class="cal-grid">
+      ${dayHeaders}
+      ${cells}
+    </div>
+  `;
+}
+
+function renderWizardStep2(): string {
   return `
     <section class="wizard-container" id="booking-section">
       ${renderWizardStepIndicators(1)}
       <div class="wizard-layout-with-summary">
         <div class="wizard-main-content">
           <h2>Choose your dates</h2>
-          <div class="wizard-date-form">
-            <div class="wizard-date-row">
-              <div class="form-group">
-                <label for="wizard-start-date">Start Date</label>
-                <input type="date" id="wizard-start-date" min="${today}" value="${startVal}" required>
-              </div>
-              <div class="form-group">
-                <label for="wizard-end-date">End Date</label>
-                <input type="date" id="wizard-end-date" min="${endMin}" value="${endVal}" required>
-              </div>
-            </div>
-            <div id="wizard-date-error" class="form-error" hidden></div>
-            <div id="wizard-date-summary" class="wizard-date-summary" hidden></div>
+          <p class="wizard-date-instruction">Tap your start date, then tap your end date</p>
+          <div class="wizard-calendar" id="wizard-calendar">
+            ${renderCalendarMonth(calendarViewMonth >= 0 ? calendarViewYear : new Date().getFullYear(), calendarViewMonth >= 0 ? calendarViewMonth : new Date().getMonth())}
           </div>
+          <div class="cal-legend">
+            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-available"></span> Available</span>
+            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-booked"></span> Booked</span>
+            <span class="cal-legend-item"><span class="cal-swatch cal-swatch-selected"></span> Your dates</span>
+          </div>
+          <div id="wizard-date-error" class="form-error" hidden></div>
+          <div id="wizard-date-summary" class="wizard-date-summary" hidden></div>
           <div class="wizard-actions wizard-actions-split">
             <button class="btn wizard-back" id="wizard-back-2">Back</button>
             <button class="btn btn-primary wizard-continue" id="wizard-continue-2" disabled>Continue</button>
@@ -342,67 +413,54 @@ function renderWizardStep2(): string {
   `;
 }
 
-async function checkAvailability(motorcycleId: string, startDate: string, endDate: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('id')
-    .eq('motorcycle_id', motorcycleId)
-    .in('status', ['approved', 'active'])
-    .lte('start_date', endDate)
-    .gte('end_date', startDate)
-    .limit(1);
-
-  if (error) {
-    // Fail open — server will catch on submit
-    return true;
-  }
-
-  return !data || data.length === 0;
+function refreshCalendar(): void {
+  const calEl = document.getElementById('wizard-calendar');
+  if (!calEl) return;
+  calEl.innerHTML = renderCalendarMonth(calendarViewYear, calendarViewMonth);
+  wireCalendarEvents();
 }
 
-async function updateWizardDateSummary(): Promise<void> {
-  const startEl = document.getElementById('wizard-start-date') as HTMLInputElement | null;
-  const endEl = document.getElementById('wizard-end-date') as HTMLInputElement | null;
+function hasBookedDateInRange(startStr: string, endStr: string): boolean {
+  // Check if any date in [start, end) is booked
+  const start = parseDate(startStr);
+  const end = parseDate(endStr);
+  const d = new Date(start);
+  while (d < end) {
+    const ds = formatDate(d);
+    if (isDateBooked(ds)) return true;
+    d.setDate(d.getDate() + 1);
+  }
+  return false;
+}
+
+function updateStep2Summary(): void {
   const summaryEl = document.getElementById('wizard-date-summary');
   const errorEl = document.getElementById('wizard-date-error');
   const continueBtn = document.getElementById('wizard-continue-2') as HTMLButtonElement | null;
+  if (!summaryEl || !errorEl || !continueBtn) return;
 
-  if (!startEl || !endEl || !summaryEl || !errorEl || !continueBtn) return;
-
-  // Hide both by default
   summaryEl.hidden = true;
   errorEl.hidden = true;
   continueBtn.disabled = true;
 
-  if (!startEl.value || !endEl.value) return;
+  if (!wizardStartDate || !wizardEndDate) return;
 
-  const start = parseDate(startEl.value);
-  const end = parseDate(endEl.value);
-
-  if (!isValidDateRange(start, end)) {
-    errorEl.textContent = 'End date must be on or after start date.';
-    errorEl.hidden = false;
-    return;
-  }
-
+  const start = parseDate(wizardStartDate);
+  const end = parseDate(wizardEndDate);
   const days = calculateNights(start, end);
+
   if (days <= 0) {
     errorEl.textContent = 'Rental must be at least 1 day.';
     errorEl.hidden = false;
     return;
   }
 
-  // Show loading state while checking availability
-  summaryEl.textContent = 'Checking availability...';
-  summaryEl.hidden = false;
-
-  const available = await checkAvailability(wizardSelectedMotoId!, startEl.value, endEl.value);
-
-  if (!available) {
-    errorEl.textContent = 'This motorcycle is not available for the selected dates. Please choose different dates.';
+  // Check if range contains booked dates
+  if (hasBookedDateInRange(wizardStartDate, wizardEndDate)) {
+    errorEl.textContent = 'Your selected range includes booked dates. Please choose different dates.';
     errorEl.hidden = false;
-    summaryEl.hidden = true;
-    continueBtn.disabled = true;
+    wizardEndDate = null;
+    refreshCalendar();
     return;
   }
 
@@ -414,36 +472,57 @@ async function updateWizardDateSummary(): Promise<void> {
   continueBtn.disabled = false;
 }
 
+function wireCalendarEvents(): void {
+  document.getElementById('cal-prev')?.addEventListener('click', () => {
+    calendarViewMonth--;
+    if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
+    refreshCalendar();
+  });
+  document.getElementById('cal-next')?.addEventListener('click', () => {
+    calendarViewMonth++;
+    if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
+    refreshCalendar();
+  });
+
+  document.querySelectorAll<HTMLDivElement>('.cal-day:not(.cal-disabled)').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const dateStr = cell.dataset.date!;
+      if (!wizardStartDate || (wizardStartDate && wizardEndDate) || dateStr < wizardStartDate) {
+        // First click or reset: set start
+        wizardStartDate = dateStr;
+        wizardEndDate = null;
+      } else {
+        // Second click: set end
+        wizardEndDate = dateStr;
+      }
+      refreshCalendar();
+      updateStep2Summary();
+    });
+  });
+}
+
 async function showWizardStep2(): Promise<void> {
   const existing = document.getElementById('booking-section');
   if (existing) existing.remove();
 
+  // Set calendar to current month or start date month
+  if (wizardStartDate) {
+    const d = parseDate(wizardStartDate);
+    calendarViewMonth = d.getMonth();
+    calendarViewYear = d.getFullYear();
+  } else {
+    calendarViewMonth = new Date().getMonth();
+    calendarViewYear = new Date().getFullYear();
+  }
+
+  // Fetch booked dates for the selected motorcycle
+  if (wizardSelectedMotoId) {
+    await fetchBookedDates(wizardSelectedMotoId);
+  }
+
   main!.insertAdjacentHTML('beforeend', renderWizardStep2());
-  wireWizardStep2();
-  await updateWizardDateSummary();
-  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
-}
-
-function wireWizardStep2(): void {
-  const startEl = document.getElementById('wizard-start-date') as HTMLInputElement | null;
-  const endEl = document.getElementById('wizard-end-date') as HTMLInputElement | null;
-
-  startEl?.addEventListener('change', async () => {
-    wizardStartDate = startEl.value;
-    if (startEl.value && endEl) {
-      endEl.min = startEl.value;
-      if (endEl.value && endEl.value < startEl.value) {
-        endEl.value = '';
-        wizardEndDate = null;
-      }
-    }
-    await updateWizardDateSummary();
-  });
-
-  endEl?.addEventListener('change', async () => {
-    wizardEndDate = endEl.value;
-    await updateWizardDateSummary();
-  });
+  wireCalendarEvents();
+  updateStep2Summary();
 
   document.getElementById('wizard-back-2')?.addEventListener('click', () => {
     showWizard(wizardSelectedMotoId ?? undefined);
@@ -454,6 +533,8 @@ function wireWizardStep2(): void {
       showWizardStep3();
     }
   });
+
+  document.getElementById('booking-section')!.scrollIntoView({ behavior: 'smooth' });
 }
 
 function renderWizardStep3(): string {
@@ -556,10 +637,11 @@ function renderWizardStep4(): string {
           </div>
 
           <h3 class="wizard-section-heading wizard-delivery-heading">Where should we deliver your moto?</h3>
+          <p class="wizard-delivery-note">Delivery is on your start date (${wizardStartDate ? parseDate(wizardStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}). Choose your preferred time:</p>
           <div class="wizard-details-form">
             <div class="form-group">
-              <label for="wizard-delivery-date">Delivery Date & Time</label>
-              <input type="datetime-local" id="wizard-delivery-date" value="${wizardDeliveryDate}">
+              <label for="wizard-delivery-time">Delivery Time</label>
+              <input type="time" id="wizard-delivery-time" value="${wizardDeliveryTime}">
             </div>
             <div class="form-group">
               <label for="wizard-delivery-location">Where exactly? (hotel name, landmark, address)</label>
@@ -601,7 +683,7 @@ function wireWizardStep4(): void {
   const whatsappEl = document.getElementById('wizard-whatsapp') as HTMLInputElement;
   const emailEl = document.getElementById('wizard-email') as HTMLInputElement;
   const paymentEl = document.getElementById('wizard-payment') as HTMLSelectElement;
-  const deliveryDateEl = document.getElementById('wizard-delivery-date') as HTMLInputElement;
+  const deliveryTimeEl = document.getElementById('wizard-delivery-time') as HTMLInputElement;
   const deliveryLocationEl = document.getElementById('wizard-delivery-location') as HTMLInputElement;
   const deliveryMapEl = document.getElementById('wizard-delivery-map') as HTMLInputElement;
   const deliveryMapError = document.getElementById('wizard-delivery-map-error')!;
@@ -614,7 +696,7 @@ function wireWizardStep4(): void {
     wizardCustomerWhatsapp = whatsappEl.value.trim();
     wizardCustomerEmail = emailEl.value.trim();
     wizardPaymentMethod = paymentEl.value;
-    wizardDeliveryDate = deliveryDateEl.value;
+    wizardDeliveryTime = deliveryTimeEl.value;
     wizardDeliveryLocation = deliveryLocationEl.value.trim();
     wizardDeliveryMap = deliveryMapEl.value.trim();
     wizardDeliveryNotes = deliveryNotesEl.value.trim();
@@ -633,7 +715,7 @@ function wireWizardStep4(): void {
   whatsappEl?.addEventListener('input', updateContinue);
   paymentEl?.addEventListener('change', updateContinue);
   emailEl?.addEventListener('input', updateContinue);
-  deliveryDateEl?.addEventListener('change', updateContinue);
+  deliveryTimeEl?.addEventListener('change', updateContinue);
   deliveryLocationEl?.addEventListener('input', updateContinue);
   deliveryMapEl?.addEventListener('input', updateContinue);
   deliveryNotesEl?.addEventListener('input', updateContinue);
@@ -1002,6 +1084,20 @@ function wireWizardStep5(): void {
     continueBtn.disabled = true;
     continueBtn.textContent = 'Submitting...';
 
+    // Build delivery datetime from start date + selected time
+    let deliveryDateTime: string | undefined;
+    if (wizardDeliveryTime && wizardStartDate) {
+      deliveryDateTime = `${wizardStartDate}T${wizardDeliveryTime}:00`;
+    }
+
+    // Combine location description with any extra notes
+    let locationDesc = wizardDeliveryLocation || undefined;
+    if (wizardDeliveryNotes && locationDesc) {
+      locationDesc = `${locationDesc} — ${wizardDeliveryNotes}`;
+    } else if (wizardDeliveryNotes) {
+      locationDesc = wizardDeliveryNotes;
+    }
+
     const rpcArgs: BookingRpcArgs = {
       p_motorcycle_id: wizardSelectedMotoId,
       p_customer_name: wizardCustomerName,
@@ -1009,11 +1105,10 @@ function wireWizardStep5(): void {
       p_customer_whatsapp: wizardCustomerWhatsapp || undefined,
       p_start_date: wizardStartDate!,
       p_end_date: wizardEndDate!,
-      p_pickup_notes: wizardDeliveryNotes || undefined,
       p_payment_method: wizardPaymentMethod || undefined,
-      p_delivery_date_time: wizardDeliveryDate || undefined,
+      p_delivery_date_time: deliveryDateTime,
       p_delivery_map_link: (wizardDeliveryMap && isValidUrl(wizardDeliveryMap)) ? wizardDeliveryMap : undefined,
-      p_delivery_location_description: wizardDeliveryLocation || undefined,
+      p_delivery_location_description: locationDesc,
       p_typed_signature_name: wizardTypedSignature || undefined,
       p_drawn_signature_data: wizardDrawnSignatureData || undefined,
       p_contract_signed_at: new Date().toISOString(),
@@ -1145,9 +1240,10 @@ function renderConfirmation(reservationCode: string, accessSecret?: string): str
     : wizardPaymentMethod;
 
   let deliveryHtml = '';
-  if (wizardDeliveryDate || wizardDeliveryLocation || wizardDeliveryMap || wizardDeliveryNotes) {
+  const deliveryDateDisplay = wizardStartDate ? parseDate(wizardStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  if (wizardDeliveryTime || wizardDeliveryLocation || wizardDeliveryMap || wizardDeliveryNotes) {
     deliveryHtml = `
-      ${wizardDeliveryDate ? `<p><strong>Date &amp; Time:</strong> ${wizardDeliveryDate}</p>` : ''}
+      ${wizardDeliveryTime ? `<p><strong>Date &amp; Time:</strong> ${deliveryDateDisplay} at ${wizardDeliveryTime}</p>` : ''}
       ${wizardDeliveryLocation ? `<p><strong>Location:</strong> ${wizardDeliveryLocation}</p>` : ''}
       ${wizardDeliveryMap ? `<p><strong>Map:</strong> <a href="${wizardDeliveryMap}" target="_blank" rel="noopener">View on map</a></p>` : ''}
       ${wizardDeliveryNotes ? `<p><strong>Notes:</strong> ${wizardDeliveryNotes}</p>` : ''}
@@ -1427,7 +1523,6 @@ async function handleSubmit(e: Event): Promise<void> {
     p_customer_whatsapp: customerWhatsapp || '',
     p_start_date: startDate,
     p_end_date: endDate,
-    p_pickup_notes: pickupNotes || undefined,
   };
 
   // Type assertion: placeholder database.types.ts doesn't fully satisfy
