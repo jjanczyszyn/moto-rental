@@ -3,8 +3,17 @@ import type { Database } from './lib/database.types';
 import { formatDate, parseDate, isValidDateRange, calculateNights } from './lib/utils';
 
 type Motorcycle = Database['public']['Tables']['motorcycles']['Row'];
-type BookingRpcArgs = Database['public']['Functions']['create_booking_request']['Args'];
-type BookingRpcResult = Database['public']['Functions']['create_booking_request']['Returns'][number];
+// The RPC has overloaded signatures in generated types; extract the new one explicitly.
+type BookingRpcArgs = {
+  p_motorcycle_id: string;
+  p_customer_name: string;
+  p_customer_email?: string;
+  p_customer_whatsapp?: string;
+  p_start_date: string;
+  p_end_date: string;
+  p_pickup_notes?: string;
+};
+type BookingRpcResult = { reservation_code: string; booking_id: string; customer_access_secret: string };
 
 const main = document.querySelector('main.container');
 if (!main) throw new Error('Missing <main class="container"> element');
@@ -322,7 +331,7 @@ async function handleSubmit(e: Event): Promise<void> {
   // Type assertion: placeholder database.types.ts doesn't fully satisfy
   // supabase-js v2.99 rpc generics. Real generated types (post-bootstrap) will.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc('create_booking_request', rpcArgs) as { data: BookingRpcResult[] | null; error: { message: string } | null };
+  const { data, error } = await (supabase as any).rpc('create_booking_request', rpcArgs) as { data: BookingRpcResult | null; error: { message: string } | null };
 
   if (error) {
     setFormDisabled(false);
@@ -333,6 +342,10 @@ async function handleSubmit(e: Event): Promise<void> {
       'Start date must be on or before end date',
       'Motorcycle not found or not available',
       'Motorcycle not available for selected dates',
+      'Motorcycle is not available for the selected dates',
+      'start_date must be before end_date',
+      'start_date cannot be in the past',
+      'Motorcycle not found or not active',
     ];
     const msg = knownErrors.some(k => error.message.includes(k))
       ? error.message
@@ -341,7 +354,7 @@ async function handleSubmit(e: Event): Promise<void> {
     return;
   }
 
-  const result = (data ?? [])[0] as BookingRpcResult | undefined;
+  const result = data as BookingRpcResult | undefined;
   if (!result) {
     showFormError('Something went wrong. Please try again.');
     setFormDisabled(false);

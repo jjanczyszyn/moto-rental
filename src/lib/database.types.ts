@@ -16,54 +16,108 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          base_price_usd: number | null
+          contract_signed_at: string | null
           created_at: string
+          customer_access_secret_hash: string | null
           customer_email: string | null
           customer_name: string
           customer_whatsapp: string | null
+          delivered_at: string | null
+          delivery_date_time: string | null
+          delivery_location_description: string | null
+          delivery_map_link: string | null
+          delivery_note: string | null
+          delivery_status: string | null
+          discount_usd: number | null
+          drawn_signature_data: string | null
           dropoff_notes: string | null
           end_date: string
           id: string
           manager_notes: string | null
           motorcycle_id: string
+          payment_method: string | null
+          payment_status: string | null
           pickup_notes: string | null
+          rental_days: number | null
+          rental_total_usd: number | null
           reservation_code: string
+          security_deposit_usd: number | null
           start_date: string
           status: string
+          total_due_usd: number | null
           total_quote: number | null
+          typed_signature_name: string | null
           updated_at: string
         }
         Insert: {
+          base_price_usd?: number | null
+          contract_signed_at?: string | null
           created_at?: string
+          customer_access_secret_hash?: string | null
           customer_email?: string | null
           customer_name: string
           customer_whatsapp?: string | null
+          delivered_at?: string | null
+          delivery_date_time?: string | null
+          delivery_location_description?: string | null
+          delivery_map_link?: string | null
+          delivery_note?: string | null
+          delivery_status?: string | null
+          discount_usd?: number | null
+          drawn_signature_data?: string | null
           dropoff_notes?: string | null
           end_date: string
           id?: string
           manager_notes?: string | null
           motorcycle_id: string
+          payment_method?: string | null
+          payment_status?: string | null
           pickup_notes?: string | null
+          rental_days?: number | null
+          rental_total_usd?: number | null
           reservation_code: string
+          security_deposit_usd?: number | null
           start_date: string
           status?: string
+          total_due_usd?: number | null
           total_quote?: number | null
+          typed_signature_name?: string | null
           updated_at?: string
         }
         Update: {
+          base_price_usd?: number | null
+          contract_signed_at?: string | null
           created_at?: string
+          customer_access_secret_hash?: string | null
           customer_email?: string | null
           customer_name?: string
           customer_whatsapp?: string | null
+          delivered_at?: string | null
+          delivery_date_time?: string | null
+          delivery_location_description?: string | null
+          delivery_map_link?: string | null
+          delivery_note?: string | null
+          delivery_status?: string | null
+          discount_usd?: number | null
+          drawn_signature_data?: string | null
           dropoff_notes?: string | null
           end_date?: string
           id?: string
           manager_notes?: string | null
           motorcycle_id?: string
+          payment_method?: string | null
+          payment_status?: string | null
           pickup_notes?: string | null
+          rental_days?: number | null
+          rental_total_usd?: number | null
           reservation_code?: string
+          security_deposit_usd?: number | null
           start_date?: string
           status?: string
+          total_due_usd?: number | null
           total_quote?: number | null
+          typed_signature_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -79,6 +133,7 @@ export type Database = {
       motorcycles: {
         Row: {
           brand: string
+          color: string | null
           created_at: string
           daily_rate: number
           description: string | null
@@ -88,10 +143,12 @@ export type Database = {
           model: string
           name: string
           slug: string
+          transmission: string | null
           year: number | null
         }
         Insert: {
           brand: string
+          color?: string | null
           created_at?: string
           daily_rate: number
           description?: string | null
@@ -101,10 +158,12 @@ export type Database = {
           model: string
           name: string
           slug: string
+          transmission?: string | null
           year?: number | null
         }
         Update: {
           brand?: string
+          color?: string | null
           created_at?: string
           daily_rate?: number
           description?: string | null
@@ -114,6 +173,7 @@ export type Database = {
           model?: string
           name?: string
           slug?: string
+          transmission?: string | null
           year?: number | null
         }
         Relationships: []
@@ -123,21 +183,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_booking_request: {
-        Args: {
-          p_customer_email: string
-          p_customer_name: string
-          p_customer_whatsapp: string
-          p_dropoff_notes?: string
-          p_end_date: string
-          p_motorcycle_id: string
-          p_pickup_notes?: string
-          p_start_date: string
-        }
-        Returns: {
-          booking_id: string
-          reservation_code: string
-        }[]
+      create_booking_request:
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_whatsapp: string
+              p_dropoff_notes?: string
+              p_end_date: string
+              p_motorcycle_id: string
+              p_pickup_notes?: string
+              p_start_date: string
+            }
+            Returns: {
+              booking_id: string
+              reservation_code: string
+            }[]
+          }
+        | {
+            Args: {
+              p_biweekly_discount_pct?: number
+              p_contract_signed_at?: string
+              p_customer_email?: string
+              p_customer_name: string
+              p_customer_whatsapp?: string
+              p_daily_rate_usd?: number
+              p_delivery_date_time?: string
+              p_delivery_location_description?: string
+              p_delivery_map_link?: string
+              p_drawn_signature_data?: string
+              p_end_date: string
+              p_monthly_rate_usd?: number
+              p_motorcycle_id: string
+              p_payment_method?: string
+              p_security_deposit_usd?: number
+              p_start_date: string
+              p_typed_signature_name?: string
+              p_weekly_discount_pct?: number
+            }
+            Returns: Json
+          }
+      lookup_booking: {
+        Args: { p_access_secret: string; p_reservation_code: string }
+        Returns: Json
       }
     }
     Enums: {
