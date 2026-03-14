@@ -36,7 +36,7 @@ export const MOTORCYCLES = [
     model: 'XTZ 125',
     color: 'White',
     transmission: 'Manual',
-    imagePath: '/images/yamaha-xtz-125-white.webp',
+    imagePath: '/images/yamaha-xtz-125-white.jpg',
   },
   {
     slug: 'genesis-klik-blue',
