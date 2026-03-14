@@ -567,7 +567,7 @@ async function showWizardStep2(): Promise<void> {
     const { data: bookedRows } = await supabase
       .from('bookings')
       .select('motorcycle_id')
-      .in('status', ['approved', 'active'])
+      .in('status', ['approved', 'active', 'pending'])
       .lte('start_date', wizardEndDate)
       .gte('end_date', wizardStartDate);
 
