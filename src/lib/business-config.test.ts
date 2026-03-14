@@ -15,7 +15,7 @@ describe('business config integrity', () => {
         expect(moto.model).toBeTruthy();
         expect(moto.color).toBeTruthy();
         expect(moto.transmission).toMatch(/^(Manual|Automatic)$/);
-        expect(moto.imagePath).toMatch(/^\/images\/.*\.jpg$/);
+        expect(moto.imagePath).toMatch(/^\/images\/.*\.(jpg|webp)$/);
       }
     });
 

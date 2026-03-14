@@ -1,7 +1,7 @@
 # Image Attribution
 
-All motorcycle photos are free-license stock images used under their respective platform licenses.
+Real product photos sourced from manufacturer websites.
 
-- **yamaha-xt-125-white.jpg** — White motorcycle side view. Source: Unsplash (free license, no attribution required). Photo ID: qNqbk4QPuJE
-- **blue-genesis-click.jpg** — Blue Vespa scooter on cobblestone. Source: Unsplash (free license, no attribution required). Photo ID: Zv17cw7joRA
-- **pink-genesis-click.jpg** — Pink scooter on road. Source: Pexels (free license, no attribution required). Photo ID: 27503797
+- **yamaha-xtz-125-white.webp** — Yamaha XTZ 125 product photo. Source: yamahanic.com
+- **genesis-klik-blue.webp** — Genesis Klik (blue) product photo. Source: genesis-sv.com
+- **genesis-klik-pink.webp** — Genesis Klik (pink/red) product photo. Source: genesis-sv.com

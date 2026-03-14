@@ -30,31 +30,31 @@ export const UNIVERSAL_INCLUSIONS = [
 
 export const MOTORCYCLES = [
   {
-    slug: 'yamaha-xt-125-white',
-    name: 'Yamaha XT 125',
+    slug: 'yamaha-xtz-125-white',
+    name: 'Yamaha XTZ 125',
     brand: 'Yamaha',
-    model: 'XT 125',
+    model: 'XTZ 125',
     color: 'White',
     transmission: 'Manual',
-    imagePath: '/images/yamaha-xt-125-white.jpg',
+    imagePath: '/images/yamaha-xtz-125-white.webp',
   },
   {
-    slug: 'blue-genesis-click',
-    name: 'Blue Genesis Click',
+    slug: 'genesis-klik-blue',
+    name: 'Blue Genesis Klik',
     brand: 'Genesis',
-    model: 'Click',
+    model: 'Klik',
     color: 'Blue',
     transmission: 'Automatic',
-    imagePath: '/images/blue-genesis-click.jpg',
+    imagePath: '/images/genesis-klik-blue.webp',
   },
   {
-    slug: 'pink-genesis-click',
-    name: 'Pink Genesis Click',
+    slug: 'genesis-klik-pink',
+    name: 'Pink Genesis Klik',
     brand: 'Genesis',
-    model: 'Click',
+    model: 'Klik',
     color: 'Pink',
     transmission: 'Automatic',
-    imagePath: '/images/pink-genesis-click.jpg',
+    imagePath: '/images/genesis-klik-pink.webp',
   },
 ] as const;
 
