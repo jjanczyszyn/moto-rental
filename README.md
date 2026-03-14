@@ -1,6 +1,19 @@
 # Moto Rental
 
-Motorcycle rental management app — vanilla TypeScript, Vite, Supabase, GitHub Pages. Built for a 3-bike business with anonymous public booking and a single Google-authenticated manager dashboard.
+Motorcycle rental management app — vanilla TypeScript, Vite, Supabase, GitHub Pages. Built for a 3-bike rental business in El Salvador with anonymous public booking, contract signing, delivery tracking, and a single Google-authenticated manager dashboard.
+
+**Live site:** https://jjanczyszyn.github.io/moto-rental/
+
+## Features
+
+- **Public booking wizard** — 6-step flow: select motorcycle → pick dates → see pricing → enter details → sign contract → confirm
+- **Live pricing** — 4-tier pricing (daily $20, weekly 10% off, biweekly 18% off, monthly $400 cap) with $100 security deposit
+- **Contract signing** — digital contract with typed name and canvas signature, printable PDF
+- **Customer reservation lookup** — access booking details with reservation code + secret
+- **Manager dashboard** — Google OAuth, booking management (approve/reject/activate/complete), manager notes
+- **Delivery board** — date-filtered view (today/tomorrow/7 days/custom), status tracking, WhatsApp + map quick actions
+- **Metrics** — earnings, active bookings, occupancy %, pending count, deliveries today
+- **3 motorcycles** — Yamaha XTZ 125 (White, Manual), Blue Genesis Klik (Automatic), Pink Genesis Klik (Automatic)
 
 ## Prerequisites
 
@@ -104,6 +117,7 @@ Pages:
 | `preview` | `vite preview` | Preview production build locally |
 | `typecheck` | `tsc --noEmit` | Type-check without emitting |
 | `lint` | `eslint src` | Lint source files |
+| `test` | `vitest run` | Run unit tests |
 
 ## Project Structure
 
@@ -115,20 +129,27 @@ src/
     config.ts             — environment variable access, BASE_PATH, AUTH_CALLBACK_URL, MANAGER_EMAIL
     database.types.ts     — Supabase database types (generated post-bootstrap)
     pricing.ts            — rental pricing calculator (daily, weekly, biweekly, monthly tiers)
+    rpc-params.ts         — Supabase RPC parameter sanitization
     supabase.ts           — typed Supabase client singleton
     types.ts              — data model types (Motorcycle, Booking, etc.)
-    utils.ts              — date utilities (formatDate, parseDate, calculateNights)
+    utils.ts              — date utilities, escapeHtml, formatDate, parseDate, calculateNights
+    business-config.test.ts — config integrity tests
+    pricing.test.ts       — pricing calculation tests
+    utils.test.ts         — utility function tests
   styles.css              — shared styles (reset, typography, cards, forms, dashboard, badges)
   main-public.ts          — public landing: hero, motorcycle cards, 6-step booking wizard, contract signing
-  main-admin.ts           — admin dashboard: metrics bar, booking management, delivery/payment tracking, review reminders
+  main-admin.ts           — admin dashboard: metrics bar, booking management, delivery/payment tracking
   main-customer.ts        — customer reservation lookup: code + secret access, booking details view
   main-auth-callback.ts   — OAuth callback: session resolution + redirect
   vite-env.d.ts           — Vite client type declarations
 index.html                — public landing page
 admin.html                — manager dashboard page
+customer.html             — customer reservation lookup page
 auth-callback.html        — OAuth return handler
-vite.config.ts            — Vite build configuration (multi-page)
+vite.config.ts            — Vite build configuration (multi-page, 4 entry points)
 tsconfig.json             — TypeScript configuration
+public/
+  images/                 — motorcycle product photos (WebP/JPG)
 scripts/
   bootstrap.sh            — full provisioning orchestrator
   provision-supabase.mjs  — create or reuse Supabase project
@@ -139,7 +160,10 @@ scripts/
   print-next-steps.mjs    — print OAuth configuration URLs
 supabase/
   config.toml             — Supabase local config (auth providers)
-  migrations/             — SQL migration template
+  migrations/             — SQL migrations (0001–0013)
+docs/
+  qa/                     — QA reports and test matrices
+  briefs/                 — project briefs and specs
 ```
 
 ## Environment Variables
@@ -257,9 +281,11 @@ npm run build
 - [x] **M3**: Public Experience
 - [x] **M4**: Admin Experience
 - [x] **M5**: Documentation + Hardening + Final QA
-- [x] **M6**: Business Config + Pricing Engine + Data Model Upgrade
-- [x] **M7**: Motorcycle Image Pipeline
-- [x] **M8**: Guided Booking Wizard (6-step flow)
+- [x] **M6**: Schema Upgrade + Business Config + Image Assets
+- [x] **M7**: Landing Page + Motorcycle Cards Upgrade
+- [x] **M8**: Guided Booking Flow + Pricing + Availability
 - [x] **M9**: Contract Signing + Delivery Details
-- [x] **M10**: Customer Access Page + Admin Expansion
-- [x] **M11**: Review Flow + Final Polish
+- [x] **M10**: Customer Reservation Access
+- [x] **M11**: Admin Dashboard Expansion + Delivery Board
+- [x] **M12**: Review Flow + README + Final QA
+- [x] **QA1**: Post-Milestone QA — Test, Stabilize, Improve
