@@ -1,6 +1,12 @@
 import { supabase } from './lib/supabase';
 import { MANAGER_WHATSAPP_LINK, REVIEW_LINK } from './lib/business-config';
 import { sanitizeRpcParams } from './lib/rpc-params';
+import { BASE_PATH } from './lib/config';
+
+function resolveImageUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return BASE_PATH + url.replace(/^\//, '');
+}
 
 const main = document.getElementById('customer-main');
 if (!main) throw new Error('Missing #customer-main element');
@@ -83,7 +89,7 @@ function formatDateNice(dateStr: string): string {
 
 function renderReservation(data: BookingData): string {
   const motoImage = data.motorcycle.image_url
-    ? `<img src="${data.motorcycle.image_url}" alt="${data.motorcycle.name}" class="confirmation-moto-img">`
+    ? `<img src="${resolveImageUrl(data.motorcycle.image_url)}" alt="${data.motorcycle.name}" class="confirmation-moto-img">`
     : '';
   const motoMeta = data.motorcycle.color || '';
 

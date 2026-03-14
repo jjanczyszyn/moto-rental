@@ -1,9 +1,10 @@
 import { supabase } from './lib/supabase';
 import type { Database } from './lib/database.types';
-import { formatDate, parseDate, isValidDateRange, calculateNights } from './lib/utils';
+import { formatDate, parseDate, isValidDateRange, calculateNights, escapeHtml } from './lib/utils';
 import { BUSINESS_NAME, UNIVERSAL_INCLUSIONS, MANAGER_WHATSAPP_LINK, MAP_LINK, PAYMENT_METHODS, MANAGER_NAME, PRICING } from './lib/business-config';
 import { calculatePricing } from './lib/pricing';
 import { sanitizeRpcParams } from './lib/rpc-params';
+import { BASE_PATH } from './lib/config';
 
 type Motorcycle = Database['public']['Tables']['motorcycles']['Row'];
 // The RPC has overloaded signatures in generated types; extract the new one explicitly.
@@ -29,6 +30,11 @@ const main = document.querySelector('main.container');
 if (!main) throw new Error('Missing <main class="container"> element');
 
 let motorcycles: Motorcycle[] = [];
+
+function resolveImageUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return BASE_PATH + url.replace(/^\//, '');
+}
 
 // --- Render helpers ---
 
@@ -76,7 +82,7 @@ function renderFetchError(): string {
 function renderCard(moto: Motorcycle): string {
   const rate = Number(moto.daily_rate).toFixed(2);
   const image = moto.image_url
-    ? `<img src="${moto.image_url}" alt="${moto.name}" class="motorcycle-card-image">`
+    ? `<img src="${resolveImageUrl(moto.image_url)}" alt="${moto.name}" class="motorcycle-card-image">`
     : `<div class="motorcycle-card-image motorcycle-card-placeholder">${moto.name}</div>`;
   const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
 
@@ -173,7 +179,7 @@ function renderWizardLiveSummary(): string {
     const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
     if (moto) {
       const image = moto.image_url
-        ? `<img src="${moto.image_url}" alt="${moto.name}" class="summary-moto-thumb">`
+        ? `<img src="${resolveImageUrl(moto.image_url)}" alt="${moto.name}" class="summary-moto-thumb">`
         : `<div class="summary-moto-thumb wizard-moto-placeholder">${moto.name}</div>`;
       sections.push(`
         <div class="summary-item">
@@ -462,7 +468,7 @@ function renderWizardStep2(): string {
     const rate = Number(moto.daily_rate).toFixed(2);
     const selected = moto.id === wizardSelectedMotoId;
     const image = moto.image_url
-      ? `<img src="${moto.image_url}" alt="${moto.name}" class="wizard-moto-image">`
+      ? `<img src="${resolveImageUrl(moto.image_url)}" alt="${moto.name}" class="wizard-moto-image">`
       : `<div class="wizard-moto-image wizard-moto-placeholder">${moto.name}</div>`;
     const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
     return `
@@ -929,7 +935,7 @@ function showPrintableContract(): void {
   <p>This agreement is made between:</p>
   <ul>
     <li><strong>Manager:</strong> ${MANAGER_NAME}</li>
-    <li><strong>Renter:</strong> ${wizardCustomerName}</li>
+    <li><strong>Renter:</strong> ${escapeHtml(wizardCustomerName)}</li>
   </ul>
   <h2>1. Motorcycle Details</h2>
   <ul><li>Make &amp; Model: ${motoName}</li></ul>
@@ -959,7 +965,7 @@ function showPrintableContract(): void {
     </div>
     <div>
       <p><strong>Renter:</strong></p>
-      <p>${wizardTypedSignature}</p>
+      <p>${escapeHtml(wizardTypedSignature)}</p>
       ${wizardDrawnSignatureData ? `<img src="${wizardDrawnSignatureData}" alt="Drawn signature" class="sig-drawn">` : ''}
       <div class="sig-line">Signature</div>
     </div>
@@ -989,7 +995,7 @@ function renderContractBody(): string {
       <p class="contract-parties">This agreement is made between:</p>
       <ul class="contract-list">
         <li><strong>Manager:</strong> ${MANAGER_NAME}</li>
-        <li><strong>Renter:</strong> ${wizardCustomerName}</li>
+        <li><strong>Renter:</strong> ${escapeHtml(wizardCustomerName)}</li>
       </ul>
 
       <h4>1. Motorcycle Details</h4>
@@ -1337,7 +1343,7 @@ function renderConfirmation(reservationCode: string, accessSecret?: string): str
   const moto = motorcycles.find(m => m.id === wizardSelectedMotoId);
   const motoName = moto ? moto.name : '';
   const motoImage = moto?.image_url
-    ? `<img src="${moto.image_url}" alt="${motoName}" class="confirmation-moto-img">`
+    ? `<img src="${resolveImageUrl(moto.image_url)}" alt="${motoName}" class="confirmation-moto-img">`
     : '';
   const motoMeta = moto ? [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ') : '';
 
