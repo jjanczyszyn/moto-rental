@@ -1,0 +1,13 @@
+{
+  "runTimestamp": "2026-03-14T22:56:38.536Z",
+  "phase": "WO-015 Deep OCR",
+  "existingRecords": 69,
+  "newExtractions": 31,
+  "totalImportRecords": 100,
+  "duplicatesRemoved": 5,
+  "noExtractableData": 36,
+  "candidateBreakdown": {
+    "deepOcrPlusCsv": 1,
+    "deepOcrOnly": 30
+  }
+}
