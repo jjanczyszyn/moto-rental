@@ -39,35 +39,70 @@ function resolveImageUrl(url: string): string {
 // --- Render helpers ---
 
 function renderHero(): string {
-  const inclusions = UNIVERSAL_INCLUSIONS.map(item => `<li>${item}</li>`).join('');
   return `
     <section class="hero">
       <h2>${BUSINESS_NAME}</h2>
-      <p class="hero-subheading">Reliable scooter &amp; motorcycle rentals with surf racks, 2 helmets, and delivery included.</p>
-      <ul class="features-strip">${inclusions}</ul>
-      <div class="hero-links">
-        <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener" class="hero-link hero-link-whatsapp">WhatsApp Us</a>
-        <a href="${MAP_LINK}" target="_blank" rel="noopener" class="hero-link hero-link-map">Find Us</a>
-      </div>
-      <a href="#booking-section" class="btn btn-primary hero-cta">Book a Bike Now</a>
+      <p class="hero-subheading">Simple, reliable motorcycle rentals for surf days and coastal freedom.</p>
+      <a href="#booking-section" class="btn btn-primary hero-cta">Reserve a Bike</a>
     </section>
   `;
 }
 
-function renderFeaturesStrip(): string {
-  const badges = UNIVERSAL_INCLUSIONS.map(item => `<span class="feature-badge">${item}</span>`).join('');
-  return `<section class="features-section">${badges}</section>`;
+function renderBenefits(): string {
+  const benefits = [
+    { icon: '🏍️', text: 'Delivery included' },
+    { icon: '🏄', text: 'Surf rack included' },
+    { icon: '⛑️', text: '2 helmets included' },
+    { icon: '💬', text: 'WhatsApp support' },
+  ];
+  const items = benefits.map(b =>
+    `<div class="benefit-item"><span class="benefit-icon">${b.icon}</span><span class="benefit-text">${b.text}</span></div>`
+  ).join('');
+  return `<section class="benefits-section"><div class="benefits-grid">${items}</div></section>`;
 }
 
-function renderContactSection(): string {
+function renderHowItWorks(): string {
+  const steps = [
+    { num: '1', title: 'Request', desc: 'Pick your bike and dates online' },
+    { num: '2', title: 'Confirm', desc: 'We confirm availability via WhatsApp' },
+    { num: '3', title: 'Ride', desc: 'We deliver the bike to you' },
+    { num: '4', title: 'Return', desc: 'Easy pickup when you\'re done' },
+  ];
+  const items = steps.map(s =>
+    `<div class="how-step"><span class="how-step-num">${s.num}</span><h4 class="how-step-title">${s.title}</h4><p class="how-step-desc">${s.desc}</p></div>`
+  ).join('');
   return `
-    <section class="contact-section">
-      <h3>Get in touch</h3>
-      <div class="contact-links">
-        <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener" class="contact-btn contact-btn-whatsapp">WhatsApp Us</a>
-        <a href="${MAP_LINK}" target="_blank" rel="noopener" class="contact-btn contact-btn-map">Find Us on Map</a>
-      </div>
+    <section class="how-section">
+      <h3 class="section-heading">How It Works</h3>
+      <div class="how-grid">${items}</div>
     </section>
+  `;
+}
+
+function renderBookingCta(): string {
+  return `
+    <section class="booking-cta-section" id="booking-section">
+      <h3 class="section-heading">Ready to Ride?</h3>
+      <p class="booking-cta-text">Pick your dates and bike — we'll handle the rest.</p>
+      <button class="btn btn-primary booking-cta-btn">Start Booking</button>
+    </section>
+  `;
+}
+
+function renderFooter(): string {
+  return `
+    <div class="site-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <strong>${BUSINESS_NAME}</strong>
+          <p>Motorcycle rentals on the Pacific coast of Nicaragua.</p>
+        </div>
+        <div class="footer-contact">
+          <a href="${MANAGER_WHATSAPP_LINK}" target="_blank" rel="noopener">WhatsApp ${MANAGER_NAME.split(' ')[0]}</a>
+          <a href="${MAP_LINK}" target="_blank" rel="noopener">Find Us on Map</a>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -79,6 +114,14 @@ function renderFetchError(): string {
   return '<div class="error-message">Unable to load motorcycles. Please try again later.</div>';
 }
 
+function getUseCaseLine(moto: Motorcycle): string {
+  const name = (moto.name || '').toLowerCase();
+  if (name.includes('yamaha') || name.includes('xtz')) return 'Great for trails and longer rides';
+  if (name.includes('blue')) return 'Perfect for cruising around town';
+  if (name.includes('pink')) return 'Light and easy for quick trips';
+  return 'Reliable and ready to ride';
+}
+
 function renderCard(moto: Motorcycle): string {
   const rate = Number(moto.daily_rate).toFixed(2);
   const image = moto.image_url
@@ -87,12 +130,14 @@ function renderCard(moto: Motorcycle): string {
   const meta = [moto.color, moto.transmission].filter(Boolean).join(' \u00b7 ');
 
   return `
-    <div class="motorcycle-card">
+    <div class="motorcycle-card" data-moto-id="${moto.id}">
       ${image}
       <div class="motorcycle-card-body">
         <h3>${moto.name}</h3>
+        <p class="motorcycle-card-usecase">${getUseCaseLine(moto)}</p>
         <p class="motorcycle-card-meta">${meta}</p>
         <p class="motorcycle-card-rate">$${rate}/day</p>
+        <button class="btn btn-primary motorcycle-card-cta book-btn" data-moto-id="${moto.id}">Reserve This Bike</button>
       </div>
     </div>
   `;
@@ -103,8 +148,11 @@ function renderCards(motos: Motorcycle[]): string {
     return '<p>No motorcycles available at this time.</p>';
   }
   return `
-    <section class="motorcycle-cards">
-      ${motos.map(renderCard).join('')}
+    <section class="motorcycle-cards-section">
+      <h3 class="section-heading">Our Bikes</h3>
+      <div class="motorcycle-cards">
+        ${motos.map(renderCard).join('')}
+      </div>
     </section>
   `;
 }
@@ -1716,6 +1764,13 @@ function wireHeroCta(): void {
   }
 }
 
+function wireBookingCta(): void {
+  const btn = main!.querySelector('.booking-cta-btn');
+  if (btn) {
+    btn.addEventListener('click', () => showWizard());
+  }
+}
+
 async function init(): Promise<void> {
   main!.innerHTML = renderHero() + renderLoading();
 
@@ -1725,15 +1780,26 @@ async function init(): Promise<void> {
     .eq('is_active', true);
 
   if (error) {
-    main!.innerHTML = renderHero() + renderFetchError();
+    main!.innerHTML = renderHero() + renderBenefits() + renderFetchError();
     wireHeroCta();
     return;
   }
 
   motorcycles = data ?? [];
-  main!.innerHTML = renderHero() + renderCards(motorcycles) + renderFeaturesStrip() + renderContactSection();
+  main!.innerHTML =
+    renderHero() +
+    renderBenefits() +
+    renderCards(motorcycles) +
+    renderHowItWorks() +
+    renderBookingCta() +
+    renderFooter();
   wireBookButtons();
   wireHeroCta();
+  wireBookingCta();
+
+  // Populate footer in the actual <footer> element
+  const footer = document.querySelector('footer .container');
+  if (footer) footer.innerHTML = renderFooter();
 }
 
 init();
