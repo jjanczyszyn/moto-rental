@@ -428,7 +428,7 @@ function renderByMotorcycleView(bookings: BookingWithMoto[]): string {
   for (const b of bookings) {
     const motoId = b.motorcycle_id;
     const motoName = b.motorcycles
-      ? `${b.motorcycles.brand} ${b.motorcycles.model}`
+      ? `${b.motorcycles.brand} ${b.motorcycles.model}${b.motorcycles.registration_number ? ` — ${b.motorcycles.registration_number}` : ''}`
       : 'Unknown';
     if (!motoMap.has(motoId)) {
       motoMap.set(motoId, { name: motoName, bookings: [] });
