@@ -43,7 +43,6 @@ function renderHero(): string {
     <section class="hero">
       <h2>${BUSINESS_NAME}</h2>
       <p class="hero-subheading">Simple, reliable motorcycle rentals for surf days and coastal freedom.</p>
-      <a href="#booking-section" class="btn btn-primary hero-cta">Reserve a Bike</a>
     </section>
   `;
 }
@@ -1686,20 +1685,6 @@ async function handleSubmit(e: Event): Promise<void> {
 
 // --- Init ---
 
-function wireHeroCta(): void {
-  const cta = main!.querySelector('.hero-cta');
-  if (cta) {
-    cta.addEventListener('click', (e) => {
-      e.preventDefault();
-      const section = document.getElementById('booking-section');
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' });
-      } else {
-        showWizard();
-      }
-    });
-  }
-}
 
 function wireBookingCta(): void {
   const btn = main!.querySelector('.booking-cta-btn');
@@ -1718,7 +1703,7 @@ async function init(): Promise<void> {
 
   if (error) {
     main!.innerHTML = renderHero() + renderBenefits() + renderFetchError();
-    wireHeroCta();
+  
     return;
   }
 
@@ -1727,7 +1712,7 @@ async function init(): Promise<void> {
     renderHero() +
     renderBenefits() +
     renderBookingCta();
-  wireHeroCta();
+
   wireBookingCta();
 
   // Populate footer in the actual <footer> element

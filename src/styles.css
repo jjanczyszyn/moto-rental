@@ -290,10 +290,6 @@ header nav a:hover {
   background: #dbeafe;
 }
 
-.hero-cta {
-  font-size: 1.125rem;
-  padding: 0.75rem 2rem;
-}
 
 /* Mobile: full-width CTAs, stacked links, tighter spacing */
 @media (max-width: 639px) {
@@ -301,10 +297,6 @@ header nav a:hover {
     padding: 2rem 1rem 1.5rem;
   }
 
-  .hero-cta {
-    display: block;
-    width: 100%;
-  }
 
   .hero-links {
     flex-direction: column;
