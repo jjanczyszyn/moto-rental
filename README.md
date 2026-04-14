@@ -266,6 +266,35 @@ npm run build
 - [ ] Old manager is signed out and shown "Access Denied" message
 - [ ] Public booking form still works for anonymous users
 
+## Supabase Keepalive
+
+Supabase free-tier projects are paused after 7 days of inactivity. A GitHub Actions workflow runs every 5 days to prevent this by querying the database.
+
+- **Workflow:** `.github/workflows/supabase-keepalive.yml`
+- **Schedule:** Every 5 days at 06:00 UTC
+- **Query:** Reads one row from `motorcycles` — minimal activity to keep the project alive
+
+### Setup
+
+Add two repository secrets (Repository → Settings → Secrets and variables → Actions → New repository secret):
+
+| Secret | Value |
+|--------|-------|
+| `SUPABASE_URL` | Your Supabase project URL (e.g., `https://abc123.supabase.co`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key from Supabase Dashboard → Settings → API |
+
+> **Note:** `SUPABASE_URL` may already exist as `VITE_SUPABASE_URL`. The keepalive workflow uses the non-prefixed name since it runs server-side, not in Vite.
+
+### Manual Trigger
+
+Go to Actions → Supabase Keepalive → Run workflow → Run workflow.
+
+### Verifying It Works
+
+1. After a manual trigger or scheduled run, check the Actions tab for the workflow run
+2. The "Run keepalive query" step should log: `Keepalive OK — queried motorcycles table, got 1 row(s)`
+3. If it fails, verify the secrets are set correctly and the Supabase project is active
+
 ## Known Limitations
 
 - Single manager only — one email controls admin access (no multi-user roles)

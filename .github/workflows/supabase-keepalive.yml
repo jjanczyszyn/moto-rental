@@ -1,0 +1,41 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    # Every 5 days at 06:00 UTC (well within the 7-day free-tier pause window)
+    - cron: '0 6 */5 * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run keepalive query
+        run: |
+          npm install @supabase/supabase-js
+          node -e "
+            const { createClient } = require('@supabase/supabase-js');
+            const supabase = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_ROLE_KEY
+            );
+            (async () => {
+              const { data, error } = await supabase
+                .from('motorcycles')
+                .select('id')
+                .limit(1);
+              if (error) {
+                console.error('Keepalive FAILED:', error.message);
+                process.exit(1);
+              }
+              console.log('Keepalive OK — queried motorcycles table, got', data.length, 'row(s)');
+            })();
+          "
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

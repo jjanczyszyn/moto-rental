@@ -1504,7 +1504,7 @@ function renderConfirmation(reservationCode: string, accessSecret?: string): str
       <div class="confirmation-section">
         <h3>Check Your Reservation</h3>
         <p>You can check your reservation status anytime:</p>
-        <p><a href="/customer.html?code=${encodeURIComponent(reservationCode)}&secret=${encodeURIComponent(accessSecret)}" class="customer-access-link">/customer.html?code=${reservationCode}&amp;secret=${accessSecret}</a></p>
+        <p><a href="/customer.html?code=${encodeURIComponent(reservationCode)}&secret=${encodeURIComponent(accessSecret)}" class="customer-access-link">${window.location.origin}/customer.html?code=${reservationCode}&amp;secret=${accessSecret}</a></p>
         <p class="text-muted">Save this link — it's your access to view your booking details.</p>
       </div>
       ` : ''}
@@ -1791,8 +1791,7 @@ async function init(): Promise<void> {
     renderBenefits() +
     renderCards(motorcycles) +
     renderHowItWorks() +
-    renderBookingCta() +
-    renderFooter();
+    renderBookingCta();
   wireBookButtons();
   wireHeroCta();
   wireBookingCta();
