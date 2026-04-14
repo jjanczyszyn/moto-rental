@@ -142,6 +142,7 @@ export type Database = {
           is_active: boolean
           model: string
           name: string
+          registration_number: string | null
           slug: string
           transmission: string | null
           year: number | null
@@ -157,6 +158,7 @@ export type Database = {
           is_active?: boolean
           model: string
           name: string
+          registration_number?: string | null
           slug: string
           transmission?: string | null
           year?: number | null
@@ -172,6 +174,7 @@ export type Database = {
           is_active?: boolean
           model?: string
           name?: string
+          registration_number?: string | null
           slug?: string
           transmission?: string | null
           year?: number | null

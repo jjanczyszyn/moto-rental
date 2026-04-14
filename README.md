@@ -280,10 +280,8 @@ Add two repository secrets (Repository → Settings → Secrets and variables �
 
 | Secret | Value |
 |--------|-------|
-| `SUPABASE_URL` | Your Supabase project URL (e.g., `https://abc123.supabase.co`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key from Supabase Dashboard → Settings → API |
-
-> **Note:** `SUPABASE_URL` may already exist as `VITE_SUPABASE_URL`. The keepalive workflow uses the non-prefixed name since it runs server-side, not in Vite.
+| `VITE_SUPABASE_URL` | Your Supabase project URL (e.g., `https://abc123.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY` | Anon/public key from Supabase Dashboard → Settings → API |
 
 ### Manual Trigger
 

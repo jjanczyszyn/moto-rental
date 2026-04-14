@@ -412,106 +412,6 @@ header nav a:hover {
   background: var(--color-primary-hover);
 }
 
-/* Motorcycle Cards */
-.motorcycle-cards {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-6);
-  padding: var(--space-4) 0 var(--space-12);
-}
-
-@media (min-width: 640px) {
-  .motorcycle-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 960px) {
-  .motorcycle-cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.motorcycle-card {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-}
-
-.motorcycle-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.motorcycle-card-image {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  display: block;
-}
-
-.motorcycle-card-placeholder {
-  background-color: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #475569;
-}
-
-.motorcycle-card-body {
-  padding: var(--space-5);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.motorcycle-card-body h3 {
-  font-family: var(--font-heading);
-  font-size: var(--text-lg);
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-  color: var(--color-text);
-}
-
-.motorcycle-card-meta {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-3);
-}
-
-.motorcycle-card-rate {
-  font-family: var(--font-heading);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: var(--space-3);
-  flex: 1;
-}
-
-.motorcycle-card .book-btn,
-.motorcycle-card-cta {
-  align-self: stretch;
-  text-align: center;
-  margin-top: auto;
-}
-
-.motorcycle-card-usecase {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  font-style: italic;
-  margin-bottom: var(--space-2);
-}
-
-.motorcycle-cards-section {
-  padding: var(--space-8) 0;
-}
-
 /* Section Headings */
 .section-heading {
   font-family: var(--font-heading);
@@ -572,58 +472,6 @@ header nav a:hover {
   color: var(--color-text);
 }
 
-/* How It Works */
-.how-section {
-  padding: var(--space-12) 0 var(--space-8);
-}
-
-.how-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-6);
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-@media (min-width: 640px) {
-  .how-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.how-step {
-  text-align: center;
-}
-
-.how-step-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  color: var(--color-white);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: var(--text-lg);
-  margin-bottom: var(--space-3);
-}
-
-.how-step-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-base);
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-  color: var(--color-text);
-}
-
-.how-step-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: var(--leading-relaxed);
-}
-
 /* Booking CTA Section */
 .booking-cta-section {
   text-align: center;
@@ -680,18 +528,21 @@ header nav a:hover {
 
 .footer-contact {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  flex-direction: row;
+  gap: var(--space-4);
+  align-items: center;
 }
 
-.footer-contact a {
-  font-size: var(--text-sm);
+.footer-icon {
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.footer-icon:hover {
   color: var(--color-primary);
-  text-decoration: none;
-}
-
-.footer-contact a:hover {
-  text-decoration: underline;
 }
 
 @media (max-width: 639px) {

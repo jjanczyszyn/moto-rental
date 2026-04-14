@@ -21,8 +21,8 @@ jobs:
           node -e "
             const { createClient } = require('@supabase/supabase-js');
             const supabase = createClient(
-              process.env.SUPABASE_URL,
-              process.env.SUPABASE_SERVICE_ROLE_KEY
+              process.env.VITE_SUPABASE_URL,
+              process.env.VITE_SUPABASE_ANON_KEY
             );
             (async () => {
               const { data, error } = await supabase
@@ -37,5 +37,5 @@ jobs:
             })();
           "
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

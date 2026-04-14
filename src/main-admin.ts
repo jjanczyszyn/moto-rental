@@ -9,7 +9,7 @@ import type { Session } from '@supabase/supabase-js';
 type Booking = Database['public']['Tables']['bookings']['Row'];
 
 interface BookingWithMoto extends Booking {
-  motorcycles: { name: string; brand: string; model: string } | null;
+  motorcycles: { name: string; brand: string; model: string; registration_number: string | null } | null;
 }
 
 type StatusGroup = {
@@ -354,7 +354,7 @@ function renderBookingDetail(b: BookingWithMoto): string {
 
 function renderBookingCard(b: BookingWithMoto): string {
   const motoName = b.motorcycles
-    ? `${b.motorcycles.brand} ${b.motorcycles.model} (${b.motorcycles.name})`
+    ? `${b.motorcycles.brand} ${b.motorcycles.model}${b.motorcycles.registration_number ? ` — ${b.motorcycles.registration_number}` : ''}`
     : 'Unknown motorcycle';
   const nights = calculateNights(parseDate(b.start_date), parseDate(b.end_date));
   const contact = [b.customer_email, b.customer_whatsapp].filter(Boolean).join(' · ') || 'No contact info';
@@ -498,7 +498,7 @@ function formatDayHeader(dateStr: string): string {
 
 function renderDeliveryPreview(b: BookingWithMoto): string {
   const motoName = b.motorcycles
-    ? `${b.motorcycles.brand} ${b.motorcycles.model} (${b.motorcycles.name})`
+    ? `${b.motorcycles.brand} ${b.motorcycles.model}${b.motorcycles.registration_number ? ` — ${b.motorcycles.registration_number}` : ''}`
     : 'Unknown motorcycle';
   const nights = b.rental_days || calculateNights(parseDate(b.start_date), parseDate(b.end_date));
 
@@ -944,7 +944,7 @@ async function loadDashboard(email: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('bookings')
-    .select('*, motorcycles(name, brand, model)')
+    .select('*, motorcycles(name, brand, model, registration_number)')
     .order('start_date', { ascending: true }) as { data: BookingWithMoto[] | null; error: { message: string } | null };
 
   if (error) {

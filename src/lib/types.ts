@@ -10,6 +10,7 @@ export interface Motorcycle {
   imageUrl: string;
   isActive: boolean;
   createdAt: string;
+  registrationNumber: string | null;
 }
 
 export type BookingStatus =
